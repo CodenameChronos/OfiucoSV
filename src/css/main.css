@@ -1,0 +1,35 @@
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-width: 320px;
+    min-height: 100%;
+}
+
+body {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--g-color-background);
+    color: var(--g-color-text);
+    font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.app-shell {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 36px;
+}
+
+galeno-login {
+    display: block;
+    width: min(1120px, 100%);
+}
+
+@media (max-width: 600px) {
+    .app-shell {
+        padding: 16px;
+    }
+}
