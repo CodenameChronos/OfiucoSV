@@ -8,7 +8,7 @@ class Layout extends HTMLElement {
     const contenido = document.createElement("div");
     contenido.setAttribute("class", "contenido");
     contenido.append(
-      // Sidebar y header en un mismo div para poder asociarles
+      // Sidebar y Workspace en un mismo div para poder asociarles
       // position: sticky a la vez en vista movil sin que uno quede
       // por encima del otro
       this.#crearSeccion("sidebar", "side-bar", "Agregar barra lateral"),

@@ -1,0 +1,275 @@
+:host {
+    display: block;
+    width: 100%;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    color: var(--g-color-text);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* Distribución */
+
+.login-layout {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr;
+    min-height: 570px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: var(--g-color-surface);
+    box-shadow: 0 20px 55px rgba(18, 59, 74, 0.12);
+}
+
+/* Marca */
+
+.brand-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 30px;
+    background: var(--g-color-primary);
+    color: white;
+}
+
+.brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-symbol {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .3);
+    border-radius: 12px;
+    color: var(--g-color-accent);
+    font-size: 35px;
+}
+
+.brand-name {
+    font-size: 35px;
+    font-weight: 750;
+    letter-spacing: -1px;
+}
+
+.brand-name span {
+    color: var(--g-color-accent);
+}
+
+.brand-panel p {
+    margin: 0;
+    color: rgba(255, 255, 255, .7);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Formulario */
+
+.form-panel {
+    display: grid;
+    place-items: center;
+    padding: 45px;
+}
+
+.form-content {
+    width: min(100%, 390px);
+}
+
+.form-heading {
+    margin-bottom: 28px;
+}
+
+.form-heading span {
+    color: var(--g-color-secondary);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 1.5px;
+}
+
+.form-heading h1 {
+    margin: 10px 0;
+    color: var(--g-color-primary);
+    font-size: 32px;
+}
+
+.form-heading p {
+    margin: 0;
+    color: #68777b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+#login-form {
+    display: grid;
+    gap: 18px;
+}
+
+.form-field {
+    position: relative;
+    display: grid;
+    gap: 8px;
+}
+
+.form-field label {
+    color: var(--g-color-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.form-field input {
+    width: 100%;
+    height: 47px;
+    padding: 0 13px;
+    border: 1px solid rgba(18, 59, 74, .18);
+    border-radius: 8px;
+    outline: none;
+    background: var(--g-color-background);
+    color: var(--g-color-text);
+    font: inherit;
+    font-size: 13px;
+}
+
+.form-field input:focus {
+    border-color: var(--g-color-secondary);
+    box-shadow: 0 0 0 3px rgba(77, 182, 172, .15);
+}
+
+.form-field input:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+/* Sugerencias */
+
+.suggestions {
+    position: absolute;
+    top: 100%;
+    z-index: 5;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid rgba(18, 59, 74, .15);
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 8px 18px rgba(18, 59, 74, .1);
+}
+
+.suggestions:empty {
+    display: none;
+}
+
+.suggestions button {
+    width: 100%;
+    padding: 11px;
+    border: 0;
+    background: white;
+    color: var(--g-color-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+}
+
+.suggestions button:hover {
+    background: var(--g-color-background);
+    color: var(--g-color-secondary);
+}
+
+/* Botones y mensajes */
+
+.feedback {
+    margin: 0;
+    color: #B54747;
+    font-size: 12px;
+}
+
+.submit-button {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 5px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--g-color-primary);
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.submit-button:hover {
+    background: var(--g-color-secondary);
+}
+
+.form-note {
+    margin-top: 22px;
+    color: #7b898c;
+    font-size: 11px;
+    text-align: center;
+}
+
+/* Sesión activa */
+
+.session-details {
+    margin-bottom: 22px;
+    border: 1px solid rgba(18, 59, 74, .13);
+    border-radius: 8px;
+}
+
+.session-details div {
+    display: grid;
+    gap: 5px;
+    padding: 14px;
+    border-bottom: 1px solid rgba(18, 59, 74, .1);
+}
+
+.session-details div:last-child {
+    border-bottom: 0;
+}
+
+.session-details span {
+    color: var(--g-color-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.session-details strong {
+    color: var(--g-color-primary);
+    font-size: 14px;
+}
+
+/* Responsive */
+
+@media (max-width: 650px) {
+    .login-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .brand-panel {
+        min-height: 110px;
+    }
+
+    .brand-name {
+        font-size: 27px;
+    }
+
+    .brand-symbol {
+        width: 38px;
+        height: 38px;
+        font-size: 28px;
+    }
+
+    .form-panel {
+        padding: 35px 24px;
+    }
+}

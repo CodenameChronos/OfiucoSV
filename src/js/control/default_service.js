@@ -1,5 +1,5 @@
-import DefaultError from "../entity/default_error";
-import DefaultResponse from "../entity/default_response";
+import DefaultError from "../entity/default_error.js";
+import DefaultResponse from "../entity/default_response.js";
 
 class DefaultService {
   constructor() {
@@ -20,7 +20,7 @@ class DefaultService {
       fetch(this.URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(entidad),
+        body: JSON.stringify(entity),
       })
         .then((resp) => {
           if (resp.status === 201) {
@@ -50,7 +50,7 @@ class DefaultService {
       // La ruta API del recurso a acceder y los parametros necesarios
       fetch(`${this.URL}?first=${first}&max=${max}`, { method: "GET" })
         .then((resp) => {
-          // El tripe igual compara el valor y el tipo de dato.
+          // El triple igual compara el valor y el tipo de dato.
           // En este caso, la respuesta debe de ser 200 y tambien un int
           if (resp.status === 200) {
             resp
@@ -58,7 +58,9 @@ class DefaultService {
               .then((j) => {
                 let datos = new DefaultResponse();
                 datos.registros = j;
-                datos.totalRegistros = resp.headers.get("Total-registros");
+                datos.totalRegistros = parseInt(
+                  resp.headers.get("Total-registros"),
+                );
                 exito(datos);
               })
               .catch((e) => {
