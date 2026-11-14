@@ -1,10 +1,13 @@
+html {
+    min-width: 320px;
+    min-height: 100%;
 :root {
-  --ofiuco-color-fondo: #cce9f8;
-  --ofiuco-color-superficie: #d6dcdf;
+  --ofiuco-color-fondo: #88efea;
+  --ofiuco-color-superficie: #dee6f1;
   --ofiuco-color-texto: #1f2d33;
   --ofiuco-color-texto-suave: #4c5d66;
-  --ofiuco-color-borde: #b9bec1;
-  --ofiuco-color-acento: #3e1073;
+  --ofiuco-color-borde: #b3b7ba;
+  --ofiuco-color-acento: #582593;
 
   /* Color de lo que se dibuja encima del acento (cabecera, botones rellenos).
      Fuera de la paleta de seis, igual que los estados. */
@@ -14,6 +17,7 @@
      para errores de validación, confirmaciones y avisos. */
   --ofiuco-color-error: #b3261e;
   --ofiuco-color-exito: #1b6e3c;
+  --ofiuco-color-aviso: #c5c20b;
   --ofiuco-color-aviso: #1ec700;
 
   /* Tipografía */
@@ -43,4 +47,5 @@ body {
   color: var(--ofiuco-color-texto);
   font: var(--ofiuco-texto-base) / var(--ofiuco-interlineado)
     var(--ofiuco-fuente);
+}
 }

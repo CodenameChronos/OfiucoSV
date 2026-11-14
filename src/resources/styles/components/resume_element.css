@@ -1,0 +1,90 @@
+:host {
+  display: block;
+  box-sizing: border-box;
+  font-family: var(--ofiuco-fuente, inherit);
+  color: var(--ofiuco-color-texto, #1f2d33);
+}
+
+.resume-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ofiuco-espacio-2, 0.5rem);
+  padding: var(--ofiuco-espacio-2, 0.5rem) var(--ofiuco-espacio-3, 0.75rem);
+  background-color: var(--ofiuco-color-superficie, #ccdbe2);
+  border: var(--ofiuco-borde-ancho, 1px) solid var(--ofiuco-color-borde, #b3b7ba);
+  border-left: 4px solid var(--ofiuco-color-acento, #4a1c7f);
+  border-radius: var(--ofiuco-radio, 0.375rem);
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.resume-item:hover {
+  filter: brightness(0.97);
+}
+
+:host([seleccionado]) .resume-item {
+  background-color: var(--ofiuco-color-fondo, #b1ddf3);
+  border-color: var(--ofiuco-color-acento, #4a1c7f);
+}
+
+:host([estado="completado"]) .resume-item {
+  border-left-color: var(--ofiuco-color-exito, #1b6e3c);
+}
+
+.resume-item__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.resume-item__titulo {
+  margin: 0;
+  font-size: var(--ofiuco-texto-sm, 1rem);
+  font-weight: 700;
+  color: var(--ofiuco-color-texto, #1f2d33);
+}
+
+.resume-item__subtitulo {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ofiuco-color-texto-suave, #4c5d66);
+}
+
+.resume-item__lateral {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--ofiuco-espacio-1, 0.25rem);
+}
+
+.resume-item__fecha {
+  font-size: 0.8rem;
+  color: var(--ofiuco-color-texto-suave, #4c5d66);
+  white-space: nowrap;
+}
+
+.resume-item__btn {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--ofiuco-color-texto, #1f2d33);
+  background-color: var(--ofiuco-color-fondo, #b1ddf3);
+  border: var(--ofiuco-borde-ancho, 1px) solid var(--ofiuco-color-borde, #b3b7ba);
+  border-radius: var(--ofiuco-radio, 0.375rem);
+  cursor: pointer;
+}
+
+.resume-item__btn:hover {
+  background-color: var(--ofiuco-color-acento, #4a1c7f);
+  color: var(--ofiuco-color-sobre-acento, #ffffff);
+}
+
+.resume-item__titulo:empty,
+.resume-item__subtitulo:empty,
+.resume-item__fecha:empty,
+.resume-item__btn:empty {
+  display: none;
+}

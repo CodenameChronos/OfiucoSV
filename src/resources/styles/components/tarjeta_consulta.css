@@ -1,0 +1,88 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: var(--ofiuco-color-superficie, #ccdbe2);
+  color: var(--ofiuco-color-texto, #1f2d33);
+  font-family: var(--ofiuco-fuente, inherit);
+  padding: var(--ofiuco-espacio-4, 1rem);
+  border: var(--ofiuco-borde-ancho, 1px) solid var(--ofiuco-color-borde, #b3b7ba);
+  border-radius: var(--ofiuco-radio, 0.375rem);
+  gap: var(--ofiuco-espacio-3, 0.75rem);
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--ofiuco-espacio-2, 0.5rem);
+  padding-bottom: var(--ofiuco-espacio-2, 0.5rem);
+  border-bottom: var(--ofiuco-borde-ancho, 1px) solid var(--ofiuco-color-borde, #b3b7ba);
+}
+
+.paciente-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.paciente-nombre {
+  margin: 0;
+  font-size: var(--ofiuco-texto-lg, 1.125rem);
+  font-weight: 700;
+  color: var(--ofiuco-color-acento, #4a1c7f);
+}
+
+.paciente-meta {
+  font-size: 0.85rem;
+  color: var(--ofiuco-color-texto-suave, #4c5d66);
+}
+
+.consulta-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  gap: 0.15rem;
+}
+
+.consulta-fecha {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ofiuco-color-texto, #1f2d33);
+}
+
+.consulta-referencia {
+  font-size: 0.85rem;
+  color: var(--ofiuco-color-texto-suave, #4c5d66);
+}
+
+.pasos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ofiuco-espacio-2, 0.5rem);
+}
+
+.pasos-vacio {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ofiuco-color-texto-suave, #4c5d66);
+  font-style: italic;
+}
+
+.btn-atender {
+  width: 100%;
+  padding: var(--ofiuco-espacio-2, 0.5rem) var(--ofiuco-espacio-4, 1rem);
+  font-family: inherit;
+  font-size: var(--ofiuco-texto-sm, 1rem);
+  font-weight: 700;
+  color: var(--ofiuco-color-sobre-acento, #ffffff);
+  background-color: var(--ofiuco-color-acento, #4a1c7f);
+  border: none;
+  border-radius: var(--ofiuco-radio, 0.375rem);
+  cursor: pointer;
+}
+
+.btn-atender:hover {
+  filter: brightness(1.1);
+}
