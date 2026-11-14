@@ -17,9 +17,9 @@
   --ofiuco-color-aviso: #1ec700;
 
   /* Tipografía */
-  --ofiuco-fuente: system-ui, -apple-system, "Segoe UI", sans-serif;
-  --ofiuco-texto-sm: 0.8125rem;
-  --ofiuco-texto-base: 0.9375rem;
+  --ofiuco-fuente: "Times New Roman", -apple-system, "Segoe UI", sans-serif;
+  --ofiuco-texto-sm: 1rem;
+  --ofiuco-texto-base: 1.2rem;
   --ofiuco-texto-lg: 1.125rem;
   --ofiuco-texto-xl: 1.5rem;
   --ofiuco-interlineado: 1.5;

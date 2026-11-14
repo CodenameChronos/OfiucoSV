@@ -54,7 +54,13 @@ export class OfiucoFooter extends BaseComponent {
           { class: "enlaces", "aria-label": "Enlaces del pie de página" },
           h("slot", { name: "enlaces" }),
         ),
-        h("p", { class: "legal" }, this.#copyright, this.#version),
+        h(
+          "p",
+          { class: "legal" },
+          this.#copyright,
+          this.#version,
+          "Todos los derechos reservados",
+        ),
       ),
     );
 
