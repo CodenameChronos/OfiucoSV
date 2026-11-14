@@ -1,9 +1,8 @@
 :root {
-    /* Paleta base de GalenoSV: seis colores */
-    --g-color-primary: #123B4A;
-    --g-color-secondary: #1F6F78;
-    --g-color-accent: #4DB6AC;
-    --g-color-background: #F2F7F6;
-    --g-color-surface: #FFFFFF;
-    --g-color-text: #263238;
+  --g-color-primary: #123b4a;
+  --g-color-secondary: #1f6f78;
+  --g-color-accent: #4db6ac;
+  --g-color-background: #f2f7f6;
+  --g-color-surface: #ffffff;
+  --g-color-text: #263238;
 }

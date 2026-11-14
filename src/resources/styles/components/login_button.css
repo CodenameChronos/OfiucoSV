@@ -1,0 +1,24 @@
+/* Estilos de ofiuco-login-button. Cargado por BaseComponent mediante <link>. */
+:host {
+  display: inline-block;
+}
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--ofiuco-boton-texto, #ececec);
+  background: var(--ofiuco-boton-fondo, #4a4d4f);
+  border: 1px solid var(--ofiuco-boton-borde, #6b6f72);
+  border-radius: 0.35rem;
+}
+button:hover {
+  filter: brightness(1.2);
+}
+button:focus-visible {
+  outline: 2px solid var(--ofiuco-foco, #fff);
+  outline-offset: 2px;
+}

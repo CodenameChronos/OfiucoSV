@@ -1,0 +1,12 @@
+/*
+ * Tokens de diseño compartidos. Las variables CSS atraviesan el shadow DOM,
+ * por lo que todos los componentes las consumen con var(--token, fallback).
+ */
+:root {
+  --ofiuco-header-fondo: #660066;
+  --ofiuco-header-texto: #ececec;
+  --ofiuco-boton-fondo: #4a4d4f;
+  --ofiuco-boton-texto: #ececec;
+  --ofiuco-boton-borde: #6b6f72;
+  --ofiuco-foco: #ffffff;
+}

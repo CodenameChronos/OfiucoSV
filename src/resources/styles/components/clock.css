@@ -1,0 +1,15 @@
+/* Estilos de ofiuco-clock. Cargado por BaseComponent mediante <link>. */
+:host {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+time {
+  display: block;
+}
+.fecha {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
