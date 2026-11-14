@@ -1,0 +1,76 @@
+/* Estilos de ofiuco-header. Cargado por BaseComponent mediante <link>. */
+:host {
+  display: block;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ofiuco-espacio-4);
+  padding: var(--ofiuco-espacio-2) var(--ofiuco-espacio-5);
+  background: var(--ofiuco-header-fondo, var(--ofiuco-color-acento));
+  color: var(--ofiuco-header-texto, var(--ofiuco-color-sobre-acento));
+
+  --ofiuco-boton-texto: var(--ofiuco-color-sobre-acento);
+  --ofiuco-boton-fondo: color-mix(
+    in srgb,
+    var(--ofiuco-color-sobre-acento) 15%,
+    transparent
+  );
+  --ofiuco-boton-borde: color-mix(
+    in srgb,
+    var(--ofiuco-color-sobre-acento) 50%,
+    transparent
+  );
+  --ofiuco-foco: var(--ofiuco-color-sobre-acento);
+}
+.marca {
+  display: flex;
+  align-items: center;
+  gap: var(--ofiuco-espacio-3);
+  flex: 1 1 0;
+  min-width: 0;
+}
+.marca ofiuco-icon {
+  --icon-size: 2rem;
+  flex: 0 0 auto;
+}
+.nombre-app {
+  font-size: var(--ofiuco-texto-lg);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reloj {
+  flex: 0 0 auto;
+}
+.sesion {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ofiuco-espacio-3);
+  flex: 1 1 0;
+  min-width: 0;
+}
+.sesion ofiuco-session-chip {
+  flex: 0 1 auto;
+}
+:host([hide-session]) .sesion > * {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  header {
+    padding: var(--ofiuco-espacio-2) var(--ofiuco-espacio-3);
+    gap: var(--ofiuco-espacio-2);
+  }
+  .nombre-app {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  ofiuco-clock::part(fecha) {
+    display: none;
+  }
+}

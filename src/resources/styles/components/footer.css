@@ -1,0 +1,105 @@
+/*
+ * Estilos de <ofiuco-footer>.
+ * Los colores salen de variables --ofiuco-footer-* que, si no se definen,
+ * caen a los tokens de main.css. La aplicación puede ajustarlos desde fuera:
+ *   ofiuco-footer { --ofiuco-footer-acento: #0a6c74; }
+ */
+
+:host {
+  display: block;
+  --_fondo: var(--ofiuco-footer-fondo, var(--ofiuco-color-superficie));
+  --_texto: var(--ofiuco-footer-texto, var(--ofiuco-color-texto));
+  --_texto-suave: var(
+    --ofiuco-footer-texto-suave,
+    var(--ofiuco-color-texto-suave)
+  );
+  --_borde: var(--ofiuco-footer-borde, var(--ofiuco-color-borde));
+  --_acento: var(--ofiuco-footer-acento, var(--ofiuco-color-acento));
+}
+
+footer {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ofiuco-espacio-4) var(--ofiuco-espacio-6);
+  align-items: start;
+  padding: var(--ofiuco-espacio-5)
+    clamp(var(--ofiuco-espacio-4), 4vw, var(--ofiuco-espacio-7));
+  background: var(--_fondo);
+  color: var(--_texto);
+  border-top: var(--ofiuco-borde-ancho) solid var(--_borde);
+  font-size: var(--ofiuco-texto-sm);
+}
+
+.nombre {
+  font-size: var(--ofiuco-texto-base);
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.descripcion {
+  margin: var(--ofiuco-espacio-1) 0 0;
+  max-width: 48ch;
+  color: var(--_texto-suave);
+}
+
+.enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ofiuco-espacio-1) var(--ofiuco-espacio-5);
+  justify-content: flex-end;
+}
+
+::slotted(a) {
+  color: var(--_texto);
+  text-decoration: underline;
+  text-decoration-color: var(--_borde);
+  text-underline-offset: 0.2em;
+  /* área de toque cómoda en móvil sin agrandar visualmente el texto */
+  padding-block: var(--ofiuco-espacio-2);
+}
+
+::slotted(a:hover) {
+  color: var(--_acento);
+  text-decoration-color: currentColor;
+}
+
+::slotted(a:focus-visible) {
+  outline: 2px solid var(--_acento);
+  outline-offset: 2px;
+  border-radius: var(--ofiuco-radio);
+}
+
+.legal {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ofiuco-espacio-1) var(--ofiuco-espacio-5);
+  margin: 0;
+  padding-top: var(--ofiuco-espacio-4);
+  border-top: var(--ofiuco-borde-ancho) solid var(--_borde);
+  color: var(--_texto-suave);
+  font-size: var(--ofiuco-texto-sm);
+}
+
+.version {
+  margin-inline-start: auto;
+}
+
+[hidden] {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  footer {
+    grid-template-columns: 1fr;
+  }
+
+  .enlaces {
+    justify-content: flex-start;
+  }
+
+  .version {
+    margin-inline-start: 0;
+  }
+}

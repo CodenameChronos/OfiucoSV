@@ -1,4 +1,4 @@
-﻿import TarjetaSimple from "./tarjeta_simple.js";
+import TarjetaSimple from "./tarjeta_simple.js";
 import Consulta from "../../../entity/consulta.js";
 import "./resume_element.js";
 import { defineOnce } from "../../core/define-once.js";
@@ -138,6 +138,7 @@ export class TarjetaConsulta extends TarjetaSimple {
 
     this.#nombreEl.textContent = nombre;
     this.#metaPacienteEl.textContent = partesMeta.join(" ÔÇó ");
+    this.#metaPacienteEl.textContent = partesMeta.join(" • ");
 
     this.#fechaEl.textContent = this.#formatearFecha(c.fechaInicio);
     this.#referenciaEl.textContent = c.referenciaExterna ?? "";
