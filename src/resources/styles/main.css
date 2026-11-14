@@ -1,35 +1,46 @@
-* {
-    box-sizing: border-box;
-}
+:root {
+  --ofiuco-color-fondo: #cce9f8;
+  --ofiuco-color-superficie: #d6dcdf;
+  --ofiuco-color-texto: #1f2d33;
+  --ofiuco-color-texto-suave: #4c5d66;
+  --ofiuco-color-borde: #b9bec1;
+  --ofiuco-color-acento: #3e1073;
 
-html {
-    min-width: 320px;
-    min-height: 100%;
+  /* Color de lo que se dibuja encima del acento (cabecera, botones rellenos).
+     Fuera de la paleta de seis, igual que los estados. */
+  --ofiuco-color-sobre-acento: #ffffff;
+
+  /* Estados: fuera de la paleta de seis, porque una app de salud los necesita
+     para errores de validación, confirmaciones y avisos. */
+  --ofiuco-color-error: #b3261e;
+  --ofiuco-color-exito: #1b6e3c;
+  --ofiuco-color-aviso: #1ec700;
+
+  /* Tipografía */
+  --ofiuco-fuente: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ofiuco-texto-sm: 0.8125rem;
+  --ofiuco-texto-base: 0.9375rem;
+  --ofiuco-texto-lg: 1.125rem;
+  --ofiuco-texto-xl: 1.5rem;
+  --ofiuco-interlineado: 1.5;
+
+  --ofiuco-espacio-1: 0.25rem;
+  --ofiuco-espacio-2: 0.5rem;
+  --ofiuco-espacio-3: 0.75rem;
+  --ofiuco-espacio-4: 1rem;
+  --ofiuco-espacio-5: 1.5rem;
+  --ofiuco-espacio-6: 2rem;
+  --ofiuco-espacio-7: 3rem;
+
+  /* Forma */
+  --ofiuco-radio: 0.375rem;
+  --ofiuco-borde-ancho: 1px;
 }
 
 body {
-    min-width: 320px;
-    min-height: 100vh;
-    margin: 0;
-    background: var(--g-color-background);
-    color: var(--g-color-text);
-    font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-.app-shell {
-    display: grid;
-    min-height: 100vh;
-    place-items: center;
-    padding: 36px;
-}
-
-galeno-login {
-    display: block;
-    width: min(1120px, 100%);
-}
-
-@media (max-width: 600px) {
-    .app-shell {
-        padding: 16px;
-    }
+  margin: 0;
+  background: var(--ofiuco-color-fondo);
+  color: var(--ofiuco-color-texto);
+  font: var(--ofiuco-texto-base) / var(--ofiuco-interlineado)
+    var(--ofiuco-fuente);
 }

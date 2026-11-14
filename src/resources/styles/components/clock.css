@@ -10,6 +10,6 @@ time {
   display: block;
 }
 .fecha {
-  font-size: 0.9rem;
+  font-size: var(--ofiuco-texto-sm);
   opacity: 0.9;
 }
