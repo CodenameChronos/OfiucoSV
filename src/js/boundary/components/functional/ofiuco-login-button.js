@@ -19,7 +19,7 @@ export class OfiucoLoginButton extends BaseComponent {
 
   static styleUrls = [
     new URL(
-      "../../../resources/styles/components/login_button.css",
+      "../../../../resources/styles/components/login_button.css",
       import.meta.url,
     ).href,
   ];
