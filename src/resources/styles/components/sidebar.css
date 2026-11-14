@@ -1,0 +1,19 @@
+:host {
+  display: block;
+  height: 100%;
+  box-sizing: border-box;
+  font-family: var(--ofiuco-fuente, inherit);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ofiuco-espacio-3, 0.75rem);
+  height: 100%;
+  padding: var(--ofiuco-espacio-4, 1rem);
+  background-color: var(--ofiuco-color-superficie, #ccdbe2);
+  border: var(--ofiuco-borde-ancho, 1px) solid var(--ofiuco-color-borde, #b3b7ba);
+  border-radius: var(--ofiuco-radio, 0.375rem);
+  box-sizing: border-box;
+  overflow-y: auto;
+}

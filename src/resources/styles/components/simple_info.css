@@ -1,0 +1,26 @@
+:host {
+  display: inline-flex;
+  box-sizing: border-box;
+  font-family: var(--ofiuco-fuente, inherit);
+}
+
+.simple-info {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--ofiuco-espacio-1, 0.25rem);
+  font-size: var(--ofiuco-texto-sm, 1rem);
+  line-height: var(--ofiuco-interlineado, 1.5);
+}
+
+.simple-info__etiqueta {
+  font-weight: 700;
+  color: var(--ofiuco-color-texto-suave, #4c5d66);
+}
+
+.simple-info__etiqueta:empty {
+  display: none;
+}
+
+.simple-info__valor {
+  color: var(--ofiuco-color-texto, #1f2d33);
+}
