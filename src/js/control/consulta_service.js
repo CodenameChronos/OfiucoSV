@@ -1,20 +1,17 @@
 import DefaultService from "./default_service.js";
 import Consulta from "../entity/consulta.js";
 
-class ConsultaService extends DefaultService {
-  constructor() {
+/**
+ * Resource: persona-rol/{idPersonaRol}/consulta
+ * @param {string} idPersonaRol uuid del padre en la ruta (persona_rol al que pertenece la consulta)
+ */
+export default class ConsultaService extends DefaultService {
+  constructor(idPersonaRol) {
     super();
-    this.URL = this.URL + "consulta";
+    if (!idPersonaRol) {
+      throw new TypeError("idPersonaRol es obligatorio");
+    }
+    this.URL = `${this._BASE_URL}persona-rol/${idPersonaRol}/consulta`;
+    this.EntityClass = Consulta;
   }
-
-  /**
-   * Sobrescribe findById para devolver una Consulta en lugar de JSON plano.
-   * @param {string} uuid
-   * @returns {Promise<Consulta>}
-   */
-  findById(uuid) {
-    return super.findById(uuid).then(Consulta.desdeJson);
-  }
-
-  filtrarPendientesPorFechaYNombre() {}
 }

@@ -1,57 +1,45 @@
+/**
+ * Tabla consulta.
+ *
+ * Los nombres de atributo son los que serializa el backend. Las relaciones
+ * llegan como objeto anidado y se conservan así para la interfaz; al enviar,
+ * toJSON las reduce a una referencia por id.
+ */
 export default class Consulta {
-  /**
-   * @param {object}      datos
-   * @param {string}      datos.idConsulta
-   * @param {Date|null}   datos.fechaInicio
-   * @param {Date|null}   datos.fechaFin
-   * @param {string|null} datos.referenciaExterna
-   * @param {string|null} datos.idPersonaRol
-   */
-  constructor({
-    idConsulta,
-    fechaInicio,
-    fechaFin,
-    referenciaExterna,
-    idPersonaRol,
-  }) {
-    this.idConsulta = idConsulta;
-    this.fechaInicio = fechaInicio;
-    this.fechaFin = fechaFin;
-    this.referenciaExterna = referenciaExterna;
-    this.idPersonaRol = idPersonaRol;
-    Object.freeze(this);
+  constructor(datos) {
+    const d = datos ?? {};
+    this.idConsulta = d.idConsulta ?? null;
+    this.fechaInicio = d.fechaInicio ?? null;
+    this.fechaFin = d.fechaFin ?? null;
+    this.referenciaExterna = d.referenciaExterna ?? null;
+    this.observaciones = d.observaciones ?? null;
+    this.idPersonaRol = d.idPersonaRol ?? null;
   }
 
-  // Una consulta está pendiente mientras no tenga fecha de fin.
-  get pendiente() {
-    return this.fechaFin === null;
+  /** @returns {Consulta|null} null si `json` es null o undefined */
+  static fromJSON(json) {
+    return json == null ? null : new Consulta(json);
   }
 
-  // Primeros 8 caracteres del UUID, para mostrar en la tarjeta.
-  get idCorto() {
-    return String(this.idConsulta).slice(0, 8);
+  /** uuid de idPersonaRol, venga como objeto anidado o como uuid suelto. */
+  idDePersonaRol() {
+    const r = this.idPersonaRol;
+    return (typeof r === "string" ? r : r?.idPersonaRol) || null;
   }
 
   /**
-   * Construye una Consulta desde el JSON del servidor.
-   * @param {object} json
-   * @returns {Consulta}
+   * Cuerpo para el backend. JSON.stringify lo llama automáticamente.
+   * Los valores sin dato van como null.
    */
-  static desdeJson(json) {
-    return new Consulta({
-      idConsulta: json.idConsulta,
-      fechaInicio: Consulta.#convertirAFecha(json.fechaInicio),
-      fechaFin: Consulta.#convertirAFecha(json.fechaFin),
-      referenciaExterna: json.referenciaExterna ?? null,
-      idPersonaRol: json.idPersonaRol ?? null,
-    });
-  }
-
-  /** Intenta convertir a tipo Date de fecha y devuelve null
-   * si el valor falta o es inválido. */
-  static #convertirAFecha(valor) {
-    if (!valor) return null;
-    const fecha = new Date(valor);
-    return Number.isNaN(fecha.getTime()) ? null : fecha;
+  toJSON() {
+    const idPersonaRolRef = this.idDePersonaRol();
+    return {
+      idConsulta: this.idConsulta,
+      fechaInicio: this.fechaInicio,
+      fechaFin: this.fechaFin,
+      referenciaExterna: this.referenciaExterna,
+      observaciones: this.observaciones,
+      idPersonaRol: idPersonaRolRef ? { idPersonaRol: idPersonaRolRef } : null,
+    };
   }
 }
