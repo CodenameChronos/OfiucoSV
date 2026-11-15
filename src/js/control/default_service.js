@@ -1,6 +1,10 @@
-import DefaultError from "../entity/default_error";
-import DefaultResponse from "../entity/default_response";
+import DefaultError from "../entity/default_error.js";
+import DefaultResponse from "../entity/default_response.js";
 
+/*
+ * Solo son nuevos los métodos `update` y `findAll`. create, findRange,
+ * findById y delete son los mismos de la versión anterior.
+ */
 class DefaultService {
   constructor() {
     this._BASE_URL =
@@ -41,6 +45,9 @@ class DefaultService {
   findRange(first, max) {
     let errorSalida = new DefaultError();
     let salida = new Promise((exito, rechazo) => {
+      // Los resources no usan el mismo nombre para el desplazamiento: unos leen
+      // `first` y otros `primero`. Se envían ambos; JAX-RS ignora el que el
+      // resource no declara. Quitar uno cuando el backend se unifique.
       fetch(`${this.URL}?first=${first}&primero=${first}&max=${max}`, {
         method: "GET",
       })
@@ -53,7 +60,12 @@ class DefaultService {
                 datos.registros = this.EntityClass
                   ? j.map((x) => this.EntityClass.fromJSON(x))
                   : j;
-                datos.totalRegistros = resp.headers.get("Total-registros");
+                // Número entero; null si el header falta o no es numérico (total desconocido)
+                const total = Number.parseInt(
+                  resp.headers.get("Total-registros"),
+                  10,
+                );
+                datos.totalRegistros = Number.isNaN(total) ? null : total;
                 exito(datos);
               })
               .catch((e) => {
@@ -76,6 +88,12 @@ class DefaultService {
     return salida;
   }
 
+  /**
+   * NUEVO. Recorre todas las páginas de findRange y devuelve el arreglo
+   * completo de registros. El backend no filtra por relación, así que es la
+   * forma de obtener "las órdenes de este paso": se trae todo y se filtra en
+   * el cliente. Cuesta una petición por cada `max` registros.
+   */
   findAll(max = 50) {
     return new Promise((exito, rechazo) => {
       const acumulado = [];
