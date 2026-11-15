@@ -1,6 +1,7 @@
 html {
     min-width: 320px;
     min-height: 100%;
+}
 :root {
   --ofiuco-color-fondo: #88efea;
   --ofiuco-color-superficie: #dee6f1;
@@ -18,7 +19,6 @@ html {
   --ofiuco-color-error: #b3261e;
   --ofiuco-color-exito: #1b6e3c;
   --ofiuco-color-aviso: #c5c20b;
-  --ofiuco-color-aviso: #1ec700;
 
   /* Tipografía */
   --ofiuco-fuente: "Times New Roman", -apple-system, "Segoe UI", sans-serif;
@@ -47,5 +47,4 @@ body {
   color: var(--ofiuco-color-texto);
   font: var(--ofiuco-texto-base) / var(--ofiuco-interlineado)
     var(--ofiuco-fuente);
-}
 }

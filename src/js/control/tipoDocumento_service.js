@@ -1,10 +1,10 @@
-import DefaultService from "./default_service";
+import DefaultService from "./default_service.js";
 
-class TipoDocumentoService {
+class TipoDocumentoService extends DefaultService {
+  constructor() {
+    super();
+    this.URL += "tipoDocumento";
+  }
+}
 
-    constructor () {
-        super();
-        this.URL =+ "tipoDocumento";
-    }
-
-} export default TipoDocumentoService;
+export default TipoDocumentoService;
