@@ -1,4 +1,3 @@
-
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
@@ -11,14 +10,14 @@ export class OfiucoAutoComplete extends BaseComponent {
     "disabled",
     "required",
     "min-chars",
-    "max-results"
+    "max-results",
   ];
 
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/auto_complete.css",
-      import.meta.url
-    ).href
+      import.meta.url,
+    ).href,
   ];
 
   #label;
@@ -30,10 +29,12 @@ export class OfiucoAutoComplete extends BaseComponent {
   #selected = null;
 
   get value() {
-    return this.#selected?.value ??
+    return (
+      this.#selected?.value ??
       this.#input?.value ??
       this.getAttribute("value") ??
-      "";
+      ""
+    );
   }
 
   set value(value) {
@@ -55,7 +56,10 @@ export class OfiucoAutoComplete extends BaseComponent {
 
   set options(items) {
     this.#options = Array.isArray(items) ? items : [];
-    this.#paintOptions(this.#input?.value || "");
+    // Solo repintar si el usuario está interactuando con el campo.
+    if (this.shadowRoot?.activeElement === this.#input) {
+      this.#paintOptions(this.#input?.value || "");
+    }
   }
 
   get selectedOption() {
@@ -86,13 +90,14 @@ export class OfiucoAutoComplete extends BaseComponent {
   }
 
   render() {
-    const id = `ofiuco-ac-${globalThis.crypto?.randomUUID?.() ??
-      Math.random().toString(36).slice(2)}`;
+    const id = `ofiuco-ac-${
+      globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
+    }`;
 
     this.#label = h(
       "label",
       { for: id, class: "label" },
-      this.getAttribute("label") || "Buscar"
+      this.getAttribute("label") || "Buscar",
     );
 
     this.#input = h("input", {
@@ -105,14 +110,14 @@ export class OfiucoAutoComplete extends BaseComponent {
       placeholder: this.getAttribute("placeholder") || "",
       autocomplete: "off",
       disabled: this.disabled,
-      required: this.hasAttribute("required")
+      required: this.hasAttribute("required"),
     });
 
     this.#list = h("ul", {
       id: `${id}-list`,
       class: "options",
       role: "listbox",
-      hidden: true
+      hidden: true,
     });
 
     this.#input.value = this.getAttribute("value") || "";
@@ -125,8 +130,8 @@ export class OfiucoAutoComplete extends BaseComponent {
         new CustomEvent("value-changed", {
           bubbles: true,
           composed: true,
-          detail: { value: this.#input.value }
-        })
+          detail: { value: this.#input.value },
+        }),
       );
 
       this.#paintOptions(this.#input.value);
@@ -145,11 +150,7 @@ export class OfiucoAutoComplete extends BaseComponent {
     });
 
     this.shadowRoot.append(
-      h("div", { class: "field" },
-        this.#label,
-        this.#input,
-        this.#list
-      )
+      h("div", { class: "field" }, this.#label, this.#input, this.#list),
     );
   }
 
@@ -180,7 +181,7 @@ export class OfiucoAutoComplete extends BaseComponent {
       return {
         value: String(item),
         label: String(item),
-        source: item
+        source: item,
       };
     }
 
@@ -194,16 +195,12 @@ export class OfiucoAutoComplete extends BaseComponent {
       "";
 
     const label =
-      item?.label ??
-      item?.nombre ??
-      item?.descripcion ??
-      item?.value ??
-      "";
+      item?.label ?? item?.nombre ?? item?.descripcion ?? item?.value ?? "";
 
     return {
       value: String(value),
       label: String(label),
-      source: item
+      source: item,
     };
   }
 
@@ -227,7 +224,7 @@ export class OfiucoAutoComplete extends BaseComponent {
     this.#visible = this.#options
       .map((item) => this.#normalise(item))
       .filter((item) =>
-        item.label.toLocaleLowerCase().includes(normalizedQuery)
+        item.label.toLocaleLowerCase().includes(normalizedQuery),
       )
       .slice(0, this.maxResults);
 
@@ -242,16 +239,16 @@ export class OfiucoAutoComplete extends BaseComponent {
           {
             id: optionId,
             role: "option",
-            "aria-selected": "false"
+            "aria-selected": "false",
           },
           h(
             "button",
             {
               type: "button",
-              tabindex: "-1"
+              tabindex: "-1",
             },
-            item.label
-          )
+            item.label,
+          ),
         );
 
         const button = li.querySelector("button");
@@ -265,22 +262,19 @@ export class OfiucoAutoComplete extends BaseComponent {
         });
 
         return li;
-      })
+      }),
     );
 
     this.#list.hidden = this.#visible.length === 0;
 
-    this.#input.setAttribute(
-      "aria-expanded",
-      String(!this.#list.hidden)
-    );
+    this.#input.setAttribute("aria-expanded", String(!this.#list.hidden));
   }
 
   #select(item) {
     this.#selected = {
       value: item.value,
       label: item.label,
-      option: item.source
+      option: item.source,
     };
 
     this.#input.value = item.label;
@@ -290,8 +284,8 @@ export class OfiucoAutoComplete extends BaseComponent {
       new CustomEvent("option-selected", {
         bubbles: true,
         composed: true,
-        detail: this.#selected
-      })
+        detail: this.#selected,
+      }),
     );
   }
 
@@ -309,10 +303,7 @@ export class OfiucoAutoComplete extends BaseComponent {
       return;
     }
 
-    if (
-      event.key === "ArrowDown" ||
-      event.key === "ArrowUp"
-    ) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       if (this.#visible.length === 0) return;
 
       event.preventDefault();
@@ -321,10 +312,7 @@ export class OfiucoAutoComplete extends BaseComponent {
 
       this.#active = Math.max(
         0,
-        Math.min(
-          this.#visible.length - 1,
-          this.#active + direction
-        )
+        Math.min(this.#visible.length - 1, this.#active + direction),
       );
 
       [...this.#list.children].forEach((li, index) => {
@@ -336,14 +324,8 @@ export class OfiucoAutoComplete extends BaseComponent {
 
       const activeOption = this.#list.children[this.#active];
 
-      this.#input.setAttribute(
-        "aria-activedescendant",
-        activeOption.id
-      );
-    } else if (
-      event.key === "Enter" &&
-      this.#visible[this.#active]
-    ) {
+      this.#input.setAttribute("aria-activedescendant", activeOption.id);
+    } else if (event.key === "Enter" && this.#visible[this.#active]) {
       event.preventDefault();
       this.#select(this.#visible[this.#active]);
     }

@@ -1,0 +1,12 @@
+/* Estilos de ofiuco-exam-assigner. */
+:host { display: block; }
+[hidden] { display: none !important; }
+
+.asignador { display: flex; flex-direction: column; gap: 1rem; }
+.titulo { margin: 0; font-size: 1.1rem; font-style: italic; text-align: center; }
+
+.asignados { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .5rem; }
+.asignado { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.asignado__nombre { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.asignado__pendiente { flex: 0 0 auto; font-size: .75rem; font-style: italic; }
+.vacio { margin: 0; text-align: center; }

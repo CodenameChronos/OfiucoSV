@@ -1,0 +1,5 @@
+/* Estilos de ofiuco-patient-info. */
+:host { display: block; }
+.paciente { display: flex; align-items: center; gap: 1rem; }
+.datos { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.nombre { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
