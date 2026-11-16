@@ -3,7 +3,7 @@ import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import { ConsultaEventos } from "../../core/eventos-consulta.js";
 // Ajustar la ruta a la carpeta real de OfiucoTextArea.
-import "../text-area/ofiuco-text-area.js";
+import "../primitives/ofiuco-text-area.js";
 
 const stylesUrl = new URL(
   "../../../../resources/styles/components/exam_results.css",

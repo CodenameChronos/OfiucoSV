@@ -165,7 +165,12 @@ export default class Consulta {
    * si el valor falta o es inválido. */
   static #convertirAFecha(valor) {
     if (!valor) return null;
-    const fecha = new Date(valor);
+    if (valor instanceof Date)
+      return Number.isNaN(valor.getTime()) ? null : valor;
+    const limpia = String(valor)
+      .trim()
+      .replace(/\[UTC\]$/, "");
+    const fecha = new Date(limpia);
     return Number.isNaN(fecha.getTime()) ? null : fecha;
   }
 

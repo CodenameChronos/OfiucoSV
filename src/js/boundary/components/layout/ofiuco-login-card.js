@@ -1,4 +1,4 @@
-import "../functional/ofiuco-auto-complete.js";
+import "../primitives/ofiuco-auto-complete.js";
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
@@ -7,8 +7,8 @@ export class OfiucoLoginCard extends BaseComponent {
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/login_card.css",
-      import.meta.url
-    ).href
+      import.meta.url,
+    ).href,
   ];
 
   #clinic;
@@ -25,7 +25,7 @@ export class OfiucoLoginCard extends BaseComponent {
   #selected = {
     clinica: null,
     rol: null,
-    persona: null
+    persona: null,
   };
 
   get clinicas() {
@@ -65,36 +65,48 @@ export class OfiucoLoginCard extends BaseComponent {
   }
 
   render() {
-    const title = h("h2", {
-      class: "login-card__title"
-    }, "Acceso");
+    const title = h(
+      "h2",
+      {
+        class: "login-card__title",
+      },
+      "Acceso",
+    );
 
-    const welcome = h("p", {
-      class: "login-card__welcome"
-    }, "Bienvenido");
+    const welcome = h(
+      "p",
+      {
+        class: "login-card__welcome",
+      },
+      "Bienvenido",
+    );
 
-    const description = h("p", {
-      class: "login-card__description"
-    }, "Selecciona tu clínica, rol y persona para continuar.");
+    const description = h(
+      "p",
+      {
+        class: "login-card__description",
+      },
+      "Selecciona tu clínica, rol y persona para continuar.",
+    );
 
     this.#clinic = h("ofiuco-auto-complete", {
       label: "Clínica",
       placeholder: "Selecciona una clínica",
-      required: true
+      required: true,
     });
 
     this.#role = h("ofiuco-auto-complete", {
       label: "Rol",
       placeholder: "Primero selecciona una clínica",
       required: true,
-      disabled: true
+      disabled: true,
     });
 
     this.#person = h("ofiuco-auto-complete", {
       label: "Persona",
       placeholder: "Primero selecciona un rol",
       required: true,
-      disabled: true
+      disabled: true,
     });
 
     this.#clinic.options = this.#clinicas;
@@ -104,90 +116,97 @@ export class OfiucoLoginCard extends BaseComponent {
     this.#feedback = h("p", {
       class: "login-card__feedback",
       role: "status",
-      "aria-live": "polite"
+      "aria-live": "polite",
     });
 
-    this.#submit = h("button", {
-      type: "submit",
-      class: "login-card__submit"
-    }, "Acceder");
+    this.#submit = h(
+      "button",
+      {
+        type: "submit",
+        class: "login-card__submit",
+      },
+      "Acceder",
+    );
 
-    const formContent = h("div", {
-      class: "login-card__fields"
-    },
+    const formContent = h(
+      "div",
+      {
+        class: "login-card__fields",
+      },
       this.#clinic,
       this.#role,
-      this.#person
+      this.#person,
     );
 
-    this.#form = h("form", {
-      class: "login-card__form"
-    },
+    this.#form = h(
+      "form",
+      {
+        class: "login-card__form",
+      },
       formContent,
       this.#feedback,
-      this.#submit
+      this.#submit,
     );
 
-    const brand = h("div", {
-      class: "login-card__brand"
-    },
-      h("span", {
-        class: "login-card__brand-name"
-      }, "OfiucoSV"),
-      h("span", {
-        class: "login-card__brand-description"
-      }, "Acceso exclusivo para personal autorizado")
+    const brand = h(
+      "div",
+      {
+        class: "login-card__brand",
+      },
+      h(
+        "span",
+        {
+          class: "login-card__brand-name",
+        },
+        "OfiucoSV",
+      ),
+      h(
+        "span",
+        {
+          class: "login-card__brand-description",
+        },
+        "Acceso exclusivo para personal autorizado",
+      ),
     );
 
-    const content = h("div", {
-      class: "login-card"
-    },
+    const content = h(
+      "div",
+      {
+        class: "login-card",
+      },
       brand,
       title,
       welcome,
       description,
-      this.#form
+      this.#form,
     );
 
     this.shadowRoot.append(content);
 
-    this.#clinic.addEventListener(
-      "option-selected",
-      event => this.#onClinicSelected(event)
+    this.#clinic.addEventListener("option-selected", (event) =>
+      this.#onClinicSelected(event),
     );
 
-    this.#role.addEventListener(
-      "option-selected",
-      event => this.#onRoleSelected(event)
+    this.#role.addEventListener("option-selected", (event) =>
+      this.#onRoleSelected(event),
     );
 
-    this.#person.addEventListener(
-      "option-selected",
-      event => this.#onPersonSelected(event)
+    this.#person.addEventListener("option-selected", (event) =>
+      this.#onPersonSelected(event),
     );
 
-    this.#clinic.addEventListener(
-      "value-changed",
-      () => this.#onClinicChanged()
+    this.#clinic.addEventListener("value-changed", () =>
+      this.#onClinicChanged(),
     );
 
-    this.#role.addEventListener(
-      "value-changed",
-      () => this.#onRoleChanged()
-    );
+    this.#role.addEventListener("value-changed", () => this.#onRoleChanged());
 
-    this.#person.addEventListener(
-      "value-changed",
-      () => {
-        this.#selected.persona = null;
-        this.#clearFeedback();
-      }
-    );
+    this.#person.addEventListener("value-changed", () => {
+      this.#selected.persona = null;
+      this.#clearFeedback();
+    });
 
-    this.#form.addEventListener(
-      "submit",
-      event => this.#onSubmit(event)
-    );
+    this.#form.addEventListener("submit", (event) => this.#onSubmit(event));
   }
 
   #onClinicSelected(event) {
@@ -231,20 +250,22 @@ export class OfiucoLoginCard extends BaseComponent {
 
     if (!clinica || !rol || !persona) {
       this.#showFeedback(
-        "Debes seleccionar una clínica, un rol y una persona."
+        "Debes seleccionar una clínica, un rol y una persona.",
       );
       return;
     }
 
-    this.dispatchEvent(new CustomEvent("login-requested", {
-      detail: {
-        clinica: clinica.option,
-        rol: rol.option,
-        persona: persona.option
-      },
-      bubbles: true,
-      composed: true
-    }));
+    this.dispatchEvent(
+      new CustomEvent("login-requested", {
+        detail: {
+          clinica: clinica.option,
+          rol: rol.option,
+          persona: persona.option,
+        },
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   #showFeedback(message) {
@@ -266,15 +287,9 @@ export class OfiucoLoginCard extends BaseComponent {
     this.#role.disabled = true;
     this.#person.disabled = true;
 
-    this.#role.setAttribute(
-      "placeholder",
-      "Primero selecciona una clínica"
-    );
+    this.#role.setAttribute("placeholder", "Primero selecciona una clínica");
 
-    this.#person.setAttribute(
-      "placeholder",
-      "Primero selecciona un rol"
-    );
+    this.#person.setAttribute("placeholder", "Primero selecciona un rol");
 
     this.#clearFeedback();
   }
@@ -286,10 +301,7 @@ export class OfiucoLoginCard extends BaseComponent {
     this.#person.value = "";
     this.#person.disabled = true;
 
-    this.#person.setAttribute(
-      "placeholder",
-      "Primero selecciona un rol"
-    );
+    this.#person.setAttribute("placeholder", "Primero selecciona un rol");
 
     this.#clearFeedback();
   }

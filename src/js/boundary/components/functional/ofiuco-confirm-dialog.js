@@ -1,7 +1,7 @@
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
-import { BUTTON_CLICK } from "../button/ofiuco-button.js";
+import { BUTTON_CLICK } from "../functional/ofiuco-button.js";
 
 const stylesUrl = new URL(
   "../../../../resources/styles/components/confirm_dialog.css",

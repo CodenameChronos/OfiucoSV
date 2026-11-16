@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import Persona from "../entity/Persona.js";
+import Persona from "../entity/persona.js";
 
 export default class PersonaService extends DefaultService {
   constructor() {

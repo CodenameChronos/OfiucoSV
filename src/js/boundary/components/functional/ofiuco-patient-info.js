@@ -1,9 +1,9 @@
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
-import "../avatar/ofiuco-avatar.js";
+import "../utils/ofiuco-avatar.js";
 // Ajustar la ruta a la carpeta real de SimpleInfo.
-import "../simple-info/simple_info.js";
+import "../primitives/simple_info.js";
 
 const stylesUrl = new URL(
   "../../../../resources/styles/components/patient_info.css",

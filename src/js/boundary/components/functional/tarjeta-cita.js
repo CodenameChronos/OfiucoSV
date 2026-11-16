@@ -103,7 +103,11 @@ export class TarjetaCita extends BaseComponent {
     const pasos = Array.isArray(c.pasos) ? c.pasos : [];
     if (pasos.length === 0) {
       this.#procedimientosEl.replaceChildren(
-        h("p", { class: "procedimientos-vacio" }, "Sin procedimientos registrados"),
+        h(
+          "p",
+          { class: "procedimientos-vacio" },
+          "Sin procedimientos registrados",
+        ),
       );
       return;
     }

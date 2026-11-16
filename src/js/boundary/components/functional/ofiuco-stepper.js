@@ -1,8 +1,8 @@
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
-import "../button/previous-button.js";
-import "../button/next-button.js";
+import "../functional/previous-button.js";
+import "../functional/next-button.js";
 
 const stylesUrl = new URL(
   "../../../../resources/styles/components/stepper.css",
