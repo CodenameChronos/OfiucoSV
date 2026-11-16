@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import ConsultaProcedimiento from "../entity/consulta_procedimiento.js";
+import ConsultaProcedimiento from "../entity/consultaProcedimiento.js";
 
 /**
  * Resource: consulta/{idConsulta}/procedimiento

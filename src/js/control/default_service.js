@@ -1,5 +1,5 @@
-import DefaultError from "../entity/default_error";
-import DefaultResponse from "../entity/default_response";
+import DefaultError from "../entity/default_error.js";
+import DefaultResponse from "../entity/default_response.js";
 
 class DefaultService {
   constructor() {

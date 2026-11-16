@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import PersonaRol from "../entity/persona_rol.js";
+import PersonaRol from "../entity/PersonaRol.js";
 
 /**
  * Resource: persona/{idPersona}/persona-rol
