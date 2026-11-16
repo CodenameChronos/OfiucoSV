@@ -43,7 +43,11 @@ suite("LoginService", function () {
 
     sinon.stub(PersonaService.prototype, "findAll").resolves([persona]);
     sinon.stub(DocumentoService.prototype, "findAll").resolves([
-      { valor: "01234567-8", idTipoDocumento: { idTipoDocumento: "type-1" } }
+      {
+        valor: "01234567-8",
+        idPersona: { idPersona: "person-1" },
+        idTipoDocumento: { idTipoDocumento: "type-1" }
+      }
     ]);
     sinon.stub(PersonaRolService.prototype, "findAll").resolves(asignaciones);
 
@@ -55,12 +59,45 @@ suite("LoginService", function () {
     expect(result).to.deep.equal({ persona, asignaciones });
   });
 
+  test("does not authenticate a person with another person's document", async function () {
+    const personaAna = { idPersona: "ana" };
+    const personaSofia = { idPersona: "sofia" };
+    const asignaciones = [{ idPersonaRol: "assignment-sofia", idRol: { nombre: "Enfermería" } }];
+
+    sinon.stub(PersonaService.prototype, "findAll").resolves([personaAna, personaSofia]);
+    sinon.stub(DocumentoService.prototype, "findAll").resolves([
+      {
+        valor: "22345678-9",
+        idPersona: { idPersona: "ana" },
+        idTipoDocumento: "type-1"
+      },
+      {
+        valor: "12345678-9",
+        idPersona: { idPersona: "sofia" },
+        idTipoDocumento: "type-1"
+      }
+    ]);
+    sinon.stub(PersonaRolService.prototype, "findAll").resolves(asignaciones);
+
+    const result = await new LoginService().autenticar({
+      idTipoDocumento: "type-1",
+      numeroDocumento: "12345678-9"
+    });
+
+    expect(result.persona).to.equal(personaSofia);
+    expect(result.asignaciones).to.equal(asignaciones);
+  });
+
   test("rejects an employee without assignments", async function () {
     sinon.stub(PersonaService.prototype, "findAll").resolves([
       { idPersona: "person-1" }
     ]);
     sinon.stub(DocumentoService.prototype, "findAll").resolves([
-      { valor: "A123", idTipoDocumento: "type-1" }
+      {
+        valor: "A123",
+        idPersona: { idPersona: "person-1" },
+        idTipoDocumento: "type-1"
+      }
     ]);
     sinon.stub(PersonaRolService.prototype, "findAll").resolves([]);
 
@@ -71,6 +108,61 @@ suite("LoginService", function () {
 
     expect(error.message).to.include("no tiene asignaciones");
   });
+  test("rejects a person whose only assignment is Patient", async function () {
+    sinon.stub(PersonaService.prototype, "findAll").resolves([
+      { idPersona: "patient-1" }
+    ]);
+    sinon.stub(DocumentoService.prototype, "findAll").resolves([
+      {
+        valor: "P123",
+        idPersona: { idPersona: "patient-1" },
+        idTipoDocumento: "type-1"
+      }
+    ]);
+    sinon.stub(PersonaRolService.prototype, "findAll").resolves([
+      { idPersonaRol: "patient-assignment", idRol: { nombre: "Paciente" } }
+    ]);
+
+    const error = await new LoginService().autenticar({
+      idTipoDocumento: "type-1",
+      numeroDocumento: "P123"
+    }).catch(error => error);
+
+    expect(error.message).to.include("no tiene asignaciones de empleado");
+  });
+
+  test("keeps employee assignments and excludes Patient assignments", async function () {
+    const persona = { idPersona: "person-1" };
+    const asignacionMedico = {
+      idPersonaRol: "assignment-doctor",
+      idRol: { nombre: "Médico" }
+    };
+    const asignacionPaciente = {
+      idPersonaRol: "assignment-patient",
+      idRol: { nombre: "Paciente" }
+    };
+
+    sinon.stub(PersonaService.prototype, "findAll").resolves([persona]);
+    sinon.stub(DocumentoService.prototype, "findAll").resolves([
+      {
+        valor: "A123",
+        idPersona: { idPersona: "person-1" },
+        idTipoDocumento: "type-1"
+      }
+    ]);
+    sinon.stub(PersonaRolService.prototype, "findAll").resolves([
+      asignacionPaciente,
+      asignacionMedico
+    ]);
+
+    const result = await new LoginService().autenticar({
+      idTipoDocumento: "type-1",
+      numeroDocumento: "A123"
+    });
+
+    expect(result.asignaciones).to.deep.equal([asignacionMedico]);
+  });
+
 });
 
 mocha.run();
