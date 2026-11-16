@@ -10,14 +10,15 @@ export class OfiucoTextArea extends BaseComponent {
     "rows",
     "maxlength",
     "required",
-    "disabled"
+    "disabled",
+    "readonly",
   ];
 
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/text_area.css",
-      import.meta.url
-    ).href
+      import.meta.url,
+    ).href,
   ];
 
   #label;
@@ -25,9 +26,7 @@ export class OfiucoTextArea extends BaseComponent {
   #hint;
 
   get value() {
-    return this.#control?.value ??
-      this.getAttribute("value") ??
-      "";
+    return this.#control?.value ?? this.getAttribute("value") ?? "";
   }
 
   set value(value) {
@@ -56,7 +55,7 @@ export class OfiucoTextArea extends BaseComponent {
 
     this.setAttribute(
       "rows",
-      String(Number.isInteger(number) && number > 0 ? number : 4)
+      String(Number.isInteger(number) && number > 0 ? number : 4),
     );
   }
 
@@ -95,15 +94,23 @@ export class OfiucoTextArea extends BaseComponent {
     this.toggleAttribute("required", Boolean(value));
   }
 
+  get readOnly() {
+    return this.hasAttribute("readonly");
+  }
+
+  set readOnly(value) {
+    this.toggleAttribute("readonly", Boolean(value));
+  }
+
   render() {
-    const id = `ofiuco-textarea-${globalThis.crypto?.randomUUID?.() ??
-      Math.random().toString(36).slice(2)
-      }`;
+    const id = `ofiuco-textarea-${
+      globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
+    }`;
 
     this.#label = h(
       "label",
       { for: id, class: "label" },
-      this.getAttribute("label") || "Descripción"
+      this.getAttribute("label") || "Descripción",
     );
 
     this.#control = h("textarea", {
@@ -112,21 +119,19 @@ export class OfiucoTextArea extends BaseComponent {
       placeholder: this.getAttribute("placeholder") || "",
       maxlength: this.getAttribute("maxlength"),
       required: this.required,
-      disabled: this.disabled
+      disabled: this.disabled,
+      readonly: this.readOnly,
     });
 
     this.#control.value = this.getAttribute("value") || "";
 
     const hintId = `${id}-counter`;
 
-    this.#hint = h(
-      "small",
-      {
-        id: hintId,
-        class: "counter",
-        "aria-live": "polite"
-      }
-    );
+    this.#hint = h("small", {
+      id: hintId,
+      class: "counter",
+      "aria-live": "polite",
+    });
 
     this.#control.setAttribute("aria-describedby", hintId);
 
@@ -137,8 +142,8 @@ export class OfiucoTextArea extends BaseComponent {
         new CustomEvent("value-changed", {
           bubbles: true,
           composed: true,
-          detail: { value: this.value }
-        })
+          detail: { value: this.value },
+        }),
       );
     });
 
@@ -147,19 +152,13 @@ export class OfiucoTextArea extends BaseComponent {
         new CustomEvent("change", {
           bubbles: true,
           composed: true,
-          detail: { value: this.value }
-        })
+          detail: { value: this.value },
+        }),
       );
     });
 
     this.shadowRoot.append(
-      h(
-        "div",
-        { class: "field" },
-        this.#label,
-        this.#control,
-        this.#hint
-      )
+      h("div", { class: "field" }, this.#label, this.#control, this.#hint),
     );
 
     this.#updateCounter();
@@ -177,8 +176,7 @@ export class OfiucoTextArea extends BaseComponent {
       this.#control.placeholder = newValue || "";
     } else if (name === "rows") {
       const number = Number(newValue);
-      this.#control.rows =
-        Number.isInteger(number) && number > 0 ? number : 4;
+      this.#control.rows = Number.isInteger(number) && number > 0 ? number : 4;
     } else if (name === "maxlength") {
       if (newValue === null) {
         this.#control.removeAttribute("maxlength");
@@ -191,11 +189,12 @@ export class OfiucoTextArea extends BaseComponent {
       }
 
       this.#updateCounter();
-    } else if (name === "disabled" || name === "required") {
-      this.#control.toggleAttribute(
-        name,
-        this.hasAttribute(name)
-      );
+    } else if (
+      name === "disabled" ||
+      name === "required" ||
+      name === "readonly"
+    ) {
+      this.#control.toggleAttribute(name, this.hasAttribute(name));
     }
   }
 
@@ -204,9 +203,7 @@ export class OfiucoTextArea extends BaseComponent {
 
     const max = this.#control.maxLength;
 
-    this.#hint.textContent = max >= 0
-      ? `${this.value.length} / ${max}`
-      : "";
+    this.#hint.textContent = max >= 0 ? `${this.value.length} / ${max}` : "";
 
     this.#hint.hidden = max < 0;
   }

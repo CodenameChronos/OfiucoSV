@@ -1,0 +1,8 @@
+/* Estilos de ofiuco-stepper. */
+:host { display: block; }
+.stepper { display: flex; flex-direction: column; align-items: stretch; gap: .5rem; }
+.stepper__progreso { margin: 0; text-align: center; font-weight: 700; }
+.stepper__acciones { display: flex; gap: .5rem; }
+.stepper__acciones > * { flex: 1 1 0; }
+.stepper__acciones ofiuco-previous-button,
+.stepper__acciones ofiuco-next-button { display: block; }

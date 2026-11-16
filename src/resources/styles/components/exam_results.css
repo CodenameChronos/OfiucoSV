@@ -1,0 +1,42 @@
+/* Estilos de ofiuco-exam-results. */
+:host { display: block; }
+[hidden] { display: none !important; }
+
+.exam-results {
+  display: grid; grid-template-columns: minmax(9rem, 12rem) 1fr;
+  gap: 1rem; align-items: start;
+}
+
+.lista {
+  margin: 0; padding: 0; list-style: none; max-height: 14rem; overflow-y: auto;
+  color: var(--ofiuco-lista-texto, #ececec);
+  background: var(--ofiuco-lista-fondo, #45494c);
+  border-radius: .35rem;
+}
+.lista:focus-visible {
+  outline: 2px solid var(--ofiuco-foco, #fff);
+  box-shadow: 0 0 0 4px #1b1b1b;
+}
+
+.item { display: flex; flex-direction: column; padding: .5rem .75rem; cursor: pointer; }
+.item:hover { background: rgba(255, 255, 255, .1); }
+.item--activo {
+  font-weight: 600;
+  background: var(--ofiuco-boton-primario-fondo, #1f5fa8);
+}
+.item__marca { margin-left: .35rem; }
+.item__aviso { font-size: .8rem; opacity: .9; }
+
+.detalle { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.vacio { grid-column: 1 / -1; margin: 0; padding: 1rem; text-align: center; }
+
+.solo-lectores {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .exam-results, .detalle { grid-template-columns: 1fr; }
+  .lista { display: flex; max-height: none; overflow-x: auto; overflow-y: hidden; }
+  .item { flex: 0 0 auto; white-space: nowrap; }
+}

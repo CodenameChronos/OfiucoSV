@@ -1,0 +1,10 @@
+/* Estilos de ofiuco-avatar. */
+:host { display: inline-block; }
+.avatar {
+  display: grid; place-items: center;
+  width: var(--avatar-size, 4.5rem); height: var(--avatar-size, 4.5rem);
+  border-radius: 50%;
+  color: var(--ofiuco-avatar-icono, #5b5b7a);
+  background: var(--ofiuco-avatar-fondo, #e8e8f5);
+}
+.avatar ofiuco-icon { --icon-size: 60%; }

@@ -1,0 +1,32 @@
+/* Estilos de ofiuco-button y sus subclases (heredan esta hoja). */
+:host { display: inline-block; }
+[hidden] { display: none !important; }
+
+.button {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  min-height: 2.75rem; padding: .5rem 1rem;
+  font: inherit; font-weight: 600; line-height: 1.2; cursor: pointer;
+  color: var(--ofiuco-boton-texto, #ececec);
+  background: var(--ofiuco-boton-fondo, #4a4d4f);
+  border: 1px solid var(--ofiuco-boton-borde, #6b6f72);
+  border-radius: .35rem;
+}
+.button--solo-icono { min-width: 2.75rem; padding: .5rem; }
+
+.button[data-variant="primary"] {
+  background: var(--ofiuco-boton-primario-fondo, #1f5fa8);
+  border-color: var(--ofiuco-boton-primario-borde, #1f5fa8);
+}
+.button[data-variant="danger"] {
+  background: var(--ofiuco-boton-peligro-fondo, #a12b2b);
+  border-color: var(--ofiuco-boton-peligro-borde, #a12b2b);
+}
+
+.button:hover:not(:disabled) { filter: brightness(1.15); }
+.button:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Doble anillo: visible tanto sobre fondos claros como oscuros. */
+.button:focus-visible {
+  outline: 2px solid var(--ofiuco-foco, #fff);
+  box-shadow: 0 0 0 4px #1b1b1b;
+}
