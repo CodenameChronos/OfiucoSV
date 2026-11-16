@@ -151,6 +151,35 @@ export class BusquedaCitas extends BaseComponent {
       this.buscar();
     });
 
+    this.#gridResultados.addEventListener("descargar-ticket", async (event) => {
+      const consulta = event.detail?.consulta;
+      const idConsulta = consulta?.idConsulta;
+      const idPersonaRol =
+        consulta?.idPersonaRol?.idPersonaRol ?? consulta?.idPersonaRol;
+
+      if (!idConsulta || !idPersonaRol) {
+        this.#mostrarEstado(
+          "No se encontraron los datos necesarios para descargar el ticket.",
+          true,
+        );
+        return;
+      }
+
+      try {
+        this.#mostrarEstado("Generando ticket PDF...", false);
+        await this.#consultaService.descargarTicketPdf(
+          idPersonaRol,
+          idConsulta,
+        );
+        this.#ocultarEstado();
+      } catch (error) {
+        this.#mostrarEstado(
+          error?.mensaje || "No se pudo descargar el ticket PDF de la cita.",
+          true,
+        );
+      }
+    });
+
     this.shadowRoot.append(
       h(
         "main",
