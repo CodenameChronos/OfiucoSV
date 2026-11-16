@@ -1,0 +1,122 @@
+/* Estilos de ofiuco-page-consulta. */
+:host {
+  display: block;
+  --radio-panel: calc(var(--ofiuco-radio, 0.375rem) * 1.5);
+}
+[hidden] {
+  display: none !important;
+}
+
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-sizing: border-box;
+  max-width: 100rem;
+  margin-inline: auto;
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+}
+.estado {
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  color: var(--g-color-primary, #123b4a);
+  background: var(--g-color-surface, #fff);
+  border: 1px solid rgba(18, 59, 74, 0.18);
+  border-radius: var(--radio-panel);
+}
+
+.consulta {
+  display: grid;
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr) clamp(15rem, 26vw, 19rem);
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.principal {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(18, 59, 74, 0.18);
+  border-top: 0.3rem solid var(--ofiuco-header-fondo, #660066);
+  border-radius: var(--radio-panel);
+  box-shadow: 0 0.25rem 1rem rgba(18, 59, 74, 0.12);
+  color: var(--ofiuco-panel-texto, var(--g-color-text, #263238));
+  background: var(--ofiuco-panel-fondo, var(--g-color-surface, #fff));
+}
+
+.cabecera {
+  display: grid;
+  grid-template-columns: 1fr minmax(10rem, 16rem) auto;
+  gap: 1rem;
+  align-items: start;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  background: var(--g-color-background, #f2f7f6);
+  border-bottom: 1px solid rgba(18, 59, 74, 0.18);
+}
+.cabecera ofiuco-return-button {
+  justify-self: end;
+}
+
+.paso {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+.paso__encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+.titulo {
+  margin: 0;
+  min-width: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--g-color-primary, #123b4a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titulo:focus-visible {
+  outline: 2px solid var(--g-color-accent, #4db6ac);
+  outline-offset: 4px;
+}
+.paso > ofiuco-end-button {
+  align-self: flex-start;
+}
+
+/* El aspecto del panel lateral lo da sidebar.css; aquí solo se coloca. */
+ofiuco-sidebar {
+  display: block;
+}
+ofiuco-sidebar > * + * {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .consulta {
+    grid-template-columns: 1fr;
+  }
+  .cabecera {
+    grid-template-columns: 1fr auto;
+  }
+  .cabecera ofiuco-text-area {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 560px) {
+  .titulo {
+    font-size: 1.25rem;
+    white-space: normal;
+    overflow: visible;
+  }
+  .paso > ofiuco-end-button {
+    align-self: stretch;
+    --ofiuco-boton-ancho: 100%;
+  }
+}

@@ -2,7 +2,6 @@ import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import { ConsultaEventos } from "../../core/eventos-consulta.js";
-// Ajustar la ruta a la carpeta real de OfiucoTextArea.
 import "../primitives/ofiuco-text-area.js";
 
 const stylesUrl = new URL(

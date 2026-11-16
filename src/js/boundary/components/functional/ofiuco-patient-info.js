@@ -2,7 +2,6 @@ import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import "../utils/ofiuco-avatar.js";
-// Ajustar la ruta a la carpeta real de SimpleInfo.
 import "../primitives/simple_info.js";
 
 const stylesUrl = new URL(

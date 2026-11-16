@@ -1,5 +1,28 @@
 /* Estilos de ofiuco-patient-info. */
-:host { display: block; }
-.paciente { display: flex; align-items: center; gap: 1rem; }
-.datos { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
-.nombre { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+:host {
+  display: block;
+}
+.paciente {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.datos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.nombre {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  color: var(--g-color-primary, #123b4a);
+}
+
+@media (max-width: 560px) {
+  .paciente {
+    gap: 0.75rem;
+  }
+}

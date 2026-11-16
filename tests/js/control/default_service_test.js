@@ -1,8 +1,8 @@
-import * as chai from "./lib/chai/index.js";
-import sinon from "./lib/sinon/sinon-esm.js";
-import DefaultService from "../../src/js/control/default_service.js"; // Ajusta la ruta según tu estructura
-import DefaultError from "../../src/js/entity/default_error.js";
-import DefaultResponse from "../../src/js/entity/default_response.js";
+import * as chai from "../lib/chai/index.js";
+import sinon from "../lib/sinon/sinon-esm.js";
+import DefaultService from "../../../src/js/control/default_service.js"; // Ajusta la ruta según tu estructura
+import DefaultError from "../../../src/js/entity/default_error.js";
+import DefaultResponse from "../../../src/js/entity/default_response.js";
 
 const { expect } = chai;
 

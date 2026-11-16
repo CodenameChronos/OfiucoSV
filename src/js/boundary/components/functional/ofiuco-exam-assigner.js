@@ -2,8 +2,7 @@ import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import { ConsultaEventos } from "../../core/eventos-consulta.js";
-import "../functional/remove-exam-button.js";
-// Ajustar la ruta a la carpeta real de OfiucoAutoComplete.
+import "../functional/ofiuco-remove-exam-button.js";
 import "../primitives/ofiuco-auto-complete.js";
 
 const stylesUrl = new URL(

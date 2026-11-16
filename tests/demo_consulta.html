@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo HU4 - Consulta (servicio falso)</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: system-ui, sans-serif;
+        background: #00cccc;
+      }
+    </style>
+  </head>
+  <body>
+    <ofiuco-page-consulta id="pagina"></ofiuco-page-consulta>
+    <script type="module">
+      import "../src/js/boundary/ofiuco-page-consulta.js";
+      import { AtencionServiceFalso } from "./js/control/atencion_service_falso.js";
+
+      const pagina = document.getElementById("pagina");
+      const servicio = new AtencionServiceFalso({
+        totalPasos: 4,
+        ordenes: [{ id: "AAA-1" }, { id: "BBB-2" }],
+      });
+      // Descomente para probar el diálogo de confirmación del servicio:
+      // servicio.avisosPendientes = ["Hay exámenes sin resultado."];
+
+      pagina.servicio = servicio;
+      pagina.contexto = { idPersonaRol: "pr-1", idConsulta: "c-1" };
+      document.addEventListener("ofiuco:consulta-salir", () =>
+        alert("La shell volvería al dashboard"),
+      );
+      window.servicio = servicio; // inspeccionar servicio.llamadas en la consola
+    </script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-import * as chai from "./lib/chai/index.js";
+import * as chai from "../lib/chai/index.js";
 import {
   clave,
   soloLectura,
@@ -10,7 +10,7 @@ import {
   agregarExamen,
   quitarExamen,
   escribirResultado,
-} from "../../src/js/control/atencion_consulta_examenes.js";
+} from "../../../src/js/control/atencion_consulta_examenes.js";
 
 const { expect } = chai;
 

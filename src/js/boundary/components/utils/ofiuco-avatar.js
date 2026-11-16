@@ -1,7 +1,7 @@
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
-import "../icon/ofiuco-icon.js";
+import "./ofiuco-icon.js";
 
 const stylesUrl = new URL(
   "../../../../resources/styles/components/avatar.css",
