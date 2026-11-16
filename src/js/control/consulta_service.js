@@ -209,6 +209,67 @@ export class ConsultaService extends DefaultService {
     else fecha.setHours(0, 0, 0, 0);
     return fecha;
   }
+
+  /**
+   * Descarga el ticket PDF generado por el backend para una consulta.
+   * Consume GET persona-rol/{idPersonaRol}/consulta/{idConsulta}/ticket
+   * @param {string} idPersonaRol
+   * @param {string} idConsulta
+   * @returns {Promise<Blob>}
+   */
+  async descargarTicketPdf(idPersonaRol, idConsulta) {
+    if (!idPersonaRol || !idConsulta) {
+      const errorSalida = new DefaultError();
+      errorSalida.mensaje =
+        "El identificador de persona-rol y de consulta son obligatorios";
+      throw errorSalida;
+    }
+
+    const url = `${this.#urlConsultas(idPersonaRol)}/${encodeURIComponent(idConsulta)}/ticket`;
+
+    let resp;
+    try {
+      resp = await fetch(url, {
+        method: "GET",
+        headers: { Accept: "application/pdf" },
+      });
+    } catch (err) {
+      const errorSalida = new DefaultError();
+      errorSalida.mensaje = "Error al acceder al repositorio";
+      errorSalida.error = err;
+      throw errorSalida;
+    }
+
+    if (!resp.ok) {
+      const errorSalida = new DefaultError();
+      errorSalida.mensaje = `Error al descargar el ticket PDF. Codigo: ${resp.status}`;
+      errorSalida.error = resp.status;
+      throw errorSalida;
+    }
+
+    const blob = await resp.blob();
+    const nombreArchivo = ConsultaService.#extraerNombreArchivo(
+      resp.headers.get("Content-Disposition"),
+      `ticket-cita-${idConsulta}.pdf`,
+    );
+
+    const objectUrl = URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+    enlace.href = objectUrl;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+
+    return blob;
+  }
+
+  static #extraerNombreArchivo(contentDisposition, respaldo) {
+    if (!contentDisposition) return respaldo;
+    const match = contentDisposition.match(/filename="?([^";]+)"?/i);
+    return match?.[1] ? match[1].trim() : respaldo;
+  }
 }
 
 export default ConsultaService;
