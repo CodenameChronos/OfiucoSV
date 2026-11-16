@@ -31,8 +31,8 @@ import {
 import {
   cargarDatosAtencion,
   _cargarOrdenes,
-} from "./atencion/atencion_loader.js";
-import { escribirCambiosAtencion } from "./atencion_consulta_writer.js";
+} from "./atencion_consulta_loader.js";
+import { escribirCambiosAtencion } from "./atencion_consulta_writter.js";
 import { construirVista } from "./atencion_consulta_mapper.js";
 
 export class ConfirmacionRequerida extends Error {
