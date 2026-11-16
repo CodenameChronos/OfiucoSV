@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GalenoSV · Prueba HU2 y HU3</title>
+  <link rel="stylesheet" href="./css/palette.css">
+  <link rel="stylesheet" href="./css/main.css">
+  <style>
+    body { margin: 0; min-height: 100vh; background: #f4f8f9; }
+    #app { padding: 1px 18px 32px; }
+  </style>
+</head>
+<body>
+  <ofiuco-header app-name="GalenoSV"></ofiuco-header>
+  <main id="app" aria-live="polite"></main>
+  <ofiuco-footer></ofiuco-footer>
+
+  <script type="module">
+    import "./js/boundary/components/layout/ofiuco-header.js";
+    import "./js/boundary/components/layout/ofiuco-footer.js";
+    import "./js/boundary/components/ofiuco-login.js";
+    import "./js/boundary/components/ofiuco-dashboard.js";
+
+    const app = document.querySelector("#app");
+
+    function mostrarLogin() {
+      app.innerHTML = "<ofiuco-login></ofiuco-login>";
+      const login = app.querySelector("ofiuco-login");
+
+      login.addEventListener("login-success", (evento) => {
+        mostrarDashboard(evento.detail);
+      });
+    }
+
+    function mostrarDashboard(sesion) {
+      app.innerHTML = "<ofiuco-dashboard></ofiuco-dashboard>";
+      const dashboard = app.querySelector("ofiuco-dashboard");
+
+      dashboard.addEventListener("logout-requested", mostrarLogin);
+      dashboard.addEventListener("consulta-selected", (evento) => {
+        const consulta = evento.detail.consulta;
+        window.alert(`Consulta seleccionada: ${consulta.referenciaExterna || consulta.idConsulta}`);
+      });
+
+      dashboard.setSession(sesion);
+    }
+
+    mostrarLogin();
+  </script>
+</body>
+</html>
