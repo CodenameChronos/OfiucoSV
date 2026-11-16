@@ -1,54 +1,41 @@
 /**
- * Tabla consulta_procedimiento: procedimiento que se sigue en una consulta.
- *
- * Los nombres de atributo son los que serializa el backend. Las relaciones
- * llegan como objeto anidado y se conservan así para la interfaz; al enviar,
- * toJSON las reduce a una referencia por id.
+ * Modelo de consulta_procedimiento_paso.
+ * Representa un paso realizado dentro de un procedimiento de una consulta.
  */
-export default class ConsultaProcedimiento {
-  constructor(datos) {
-    const d = datos ?? {};
-    this.idConsultaProcedimiento = d.idConsultaProcedimiento ?? null;
-    this.fechaInicio = d.fechaInicio ?? null;
-    this.fechaFin = d.fechaFin ?? null;
-    this.observaciones = d.observaciones ?? null;
-    this.idConsulta = d.idConsulta ?? null;
-    this.idProcedimiento = d.idProcedimiento ?? null;
+export default class ConsultaProcedimientoPaso {
+  constructor(datos = {}) {
+    this.idConsultaProcedimientoPaso = datos.idConsultaProcedimientoPaso ?? null;
+    this.fechaInicio = datos.fechaInicio ?? null;
+    this.fechaFin = datos.fechaFin ?? null;
+    this.estado = datos.estado ?? null;
+    this.idConsultaProcedimiento = datos.idConsultaProcedimiento ?? null;
+    this.idProcedimientoPaso = datos.idProcedimientoPaso ?? null;
+    this.idPersonaRol = datos.idPersonaRol ?? null;
+    this.ordenExamenList = datos.ordenExamenList ?? [];
   }
 
-  /** @returns {ConsultaProcedimiento|null} null si `json` es null o undefined */
   static fromJSON(json) {
-    return json == null ? null : new ConsultaProcedimiento(json);
+    return json == null ? null : new ConsultaProcedimientoPaso(json);
   }
 
-  /** uuid de idConsulta, venga como objeto anidado o como uuid suelto. */
-  idDeConsulta() {
-    const r = this.idConsulta;
-    return (typeof r === "string" ? r : r?.idConsulta) || null;
+  idDeConsultaProcedimiento() {
+    const relacion = this.idConsultaProcedimiento;
+    return (typeof relacion === "string" ? relacion : relacion?.idConsultaProcedimiento) ?? null;
   }
 
-  /** uuid de idProcedimiento, venga como objeto anidado o como uuid suelto. */
-  idDeProcedimiento() {
-    const r = this.idProcedimiento;
-    return (typeof r === "string" ? r : r?.idProcedimiento) || null;
-  }
-
-  /**
-   * Cuerpo para el backend. JSON.stringify lo llama automáticamente.
-   * Los valores sin dato van como null.
-   */
   toJSON() {
-    const idConsultaRef = this.idDeConsulta();
-    const idProcedimientoRef = this.idDeProcedimiento();
+    const idConsultaProcedimiento = this.idDeConsultaProcedimiento();
     return {
-      idConsultaProcedimiento: this.idConsultaProcedimiento,
+      idConsultaProcedimientoPaso: this.idConsultaProcedimientoPaso,
       fechaInicio: this.fechaInicio,
       fechaFin: this.fechaFin,
-      observaciones: this.observaciones,
-      idConsulta: idConsultaRef ? { idConsulta: idConsultaRef } : null,
-      idProcedimiento: idProcedimientoRef
-        ? { idProcedimiento: idProcedimientoRef }
+      estado: this.estado,
+      idConsultaProcedimiento: idConsultaProcedimiento
+        ? { idConsultaProcedimiento }
         : null,
+      idProcedimientoPaso: this.idProcedimientoPaso,
+      idPersonaRol: this.idPersonaRol,
+      ordenExamenList: this.ordenExamenList,
     };
   }
 }

@@ -1,10 +1,10 @@
 import DefaultService from "./default_service.js";
+import TipoDocumento from "../entity/tipoDocumento.js";
 
-class TipoDocumentoService extends DefaultService {
+export default class TipoDocumentoService extends DefaultService {
   constructor() {
     super();
-    this.URL += "tipoDocumento";
+    this.URL = `${this._BASE_URL}tipoDocumento`;
+    this.EntityClass = TipoDocumento;
   }
 }
-
-export default TipoDocumentoService;
