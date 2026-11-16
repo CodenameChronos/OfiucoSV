@@ -1,7 +1,35 @@
-import { expect } from "chai";
-import "../../src/js/components/exam-results/ofiuco-exam-results.js";
-import { ConsultaEventos } from "../../src/js/core/eventos-consulta.js";
-import { mount, unmountAll } from "../helpers.js";
+import * as chai from "./lib/chai/index.js";
+import sinon from "./lib/sinon/sinon-esm.js";
+import "../../src/js/boundary/components/functional/ofiuco-exam-results.js";
+import { ConsultaEventos } from "../../src/js/boundary/core/eventos-consulta.js";
+
+const { expect } = chai;
+
+const mount = (tag, props = {}) => {
+  let fixture = document.querySelector("#fixture");
+  if (!fixture) {
+    fixture = document.createElement("div");
+    fixture.id = "fixture";
+    document.body.appendChild(fixture);
+  }
+  const el = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === "model") {
+      el.model = value;
+    } else {
+      el.setAttribute(key, value);
+    }
+  }
+  fixture.appendChild(el);
+  return el;
+};
+
+const unmountAll = () => {
+  const fixture = document.querySelector("#fixture");
+  if (fixture) {
+    fixture.innerHTML = "";
+  }
+};
 
 const modelo = (extra = {}) => ({
   items: [
@@ -20,7 +48,7 @@ const modelo = (extra = {}) => ({
   ...extra,
 });
 
-describe("<ofiuco-exam-results>", () => {
+suite("<ofiuco-exam-results>", () => {
   const spies = [];
   const listen = (name) => {
     const spy = sinon.spy();
@@ -29,7 +57,7 @@ describe("<ofiuco-exam-results>", () => {
     return spy;
   };
 
-  afterEach(() => {
+  teardown(() => {
     unmountAll();
     spies.splice(0).forEach(([n, s]) => document.removeEventListener(n, s));
   });
@@ -45,45 +73,38 @@ describe("<ofiuco-exam-results>", () => {
     interno.dispatchEvent(new Event("input"));
   };
 
-  describe("sin exámenes ordenados", () => {
-    it("muestra el mensaje de asignar y oculta lista y campos", () => {
+  suite("sin exámenes ordenados", () => {
+    test("muestra el mensaje de asignar y oculta lista y campos", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo({ items: [], seleccionado: null, valores: {} });
-
       expect(q(el, ".vacio").hidden).to.equal(false);
       expect(q(el, ".vacio").textContent).to.contain("Asigne un examen");
       expect(q(el, ".lista").hidden).to.equal(true);
       expect(q(el, ".detalle").hidden).to.equal(true);
     });
 
-    it("con exámenes pendientes pide guardar antes de registrar resultados", () => {
+    test("con exámenes pendientes pide guardar antes de registrar resultados", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo({
         items: [],
         seleccionado: null,
         valores: {},
         pendientes: 2,
       });
-
       expect(q(el, ".vacio").textContent).to.contain("Guarde los cambios");
     });
 
-    it("sin modelo se comporta como vacío", () => {
+    test("sin modelo se comporta como vacío", () => {
       const el = mount("ofiuco-exam-results");
-
       expect(q(el, ".lista").hidden).to.equal(true);
       expect(q(el, ".detalle").hidden).to.equal(true);
     });
   });
 
-  describe("lista", () => {
-    it("lista los exámenes y marca el seleccionado", () => {
+  suite("lista", () => {
+    test("lista los exámenes y marca el seleccionado", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo();
-
       expect(items(el).map((li) => li.textContent.trim())).to.have.length(3);
       expect(items(el)[0].getAttribute("aria-selected")).to.equal("true");
       expect(items(el)[1].getAttribute("aria-selected")).to.equal("false");
@@ -92,11 +113,9 @@ describe("<ofiuco-exam-results>", () => {
       );
     });
 
-    it("marca los exámenes con resultado y avisa a lectores de pantalla", () => {
+    test("marca los exámenes con resultado y avisa a lectores de pantalla", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo();
-
       expect(items(el)[0].querySelector(".item__marca")).to.not.equal(null);
       expect(
         items(el)[0].querySelector(".solo-lectores").textContent,
@@ -104,21 +123,19 @@ describe("<ofiuco-exam-results>", () => {
       expect(items(el)[1].querySelector(".item__marca")).to.equal(null);
     });
 
-    it("avisa de los exámenes que se quitarán al guardar", () => {
+    test("avisa de los exámenes que se quitarán al guardar", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo({
         items: [
           { id: "a", nombre: "Glucosa", tieneResultado: false, quitando: true },
         ],
       });
-
       expect(items(el)[0].querySelector(".item__aviso").textContent).to.contain(
         "Se quitará al guardar",
       );
     });
 
-    it("refleja un aumento o una disminución de exámenes tras guardar", () => {
+    test("refleja un aumento o una disminución de exámenes tras guardar", () => {
       const el = mount("ofiuco-exam-results");
       el.model = modelo();
       expect(items(el)).to.have.length(3);
@@ -140,9 +157,8 @@ describe("<ofiuco-exam-results>", () => {
       expect(items(el)).to.have.length(4);
     });
 
-    it("el nombre se inserta como texto, nunca como HTML", () => {
+    test("el nombre se inserta como texto, nunca como HTML", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo({
         items: [
           {
@@ -153,30 +169,25 @@ describe("<ofiuco-exam-results>", () => {
           },
         ],
       });
-
       expect(q(el, ".lista img")).to.equal(null);
     });
   });
 
-  describe("selección", () => {
-    it("el clic en un examen emite EXAMEN_SELECCIONADO con su id", () => {
+  suite("selección", () => {
+    test("el clic en un examen emite EXAMEN_SELECCIONADO con su id", () => {
       const spy = listen(ConsultaEventos.EXAMEN_SELECCIONADO);
       const el = mount("ofiuco-exam-results");
       el.model = modelo();
-
       items(el)[1].click();
-
       expect(spy.calledOnce).to.equal(true);
       expect(spy.firstCall.args[0].detail).to.deep.equal({ id: "b" });
     });
 
-    it("el clic en el ya seleccionado no emite", () => {
+    test("el clic en el ya seleccionado no emite", () => {
       const spy = listen(ConsultaEventos.EXAMEN_SELECCIONADO);
       const el = mount("ofiuco-exam-results");
       el.model = modelo();
-
       items(el)[0].click();
-
       expect(spy.called).to.equal(false);
     });
 
@@ -186,11 +197,10 @@ describe("<ofiuco-exam-results>", () => {
       ["Home", "c", "a"],
       ["End", "a", "c"],
     ].forEach(([tecla, desde, hacia]) => {
-      it(`${tecla} desde ${desde} selecciona ${hacia}`, () => {
+      test(`${tecla} desde ${desde} selecciona ${hacia}`, () => {
         const spy = listen(ConsultaEventos.EXAMEN_SELECCIONADO);
         const el = mount("ofiuco-exam-results");
         el.model = modelo({ seleccionado: desde });
-
         q(el, ".lista").dispatchEvent(
           new KeyboardEvent("keydown", {
             key: tecla,
@@ -198,76 +208,63 @@ describe("<ofiuco-exam-results>", () => {
             cancelable: true,
           }),
         );
-
         expect(spy.firstCall.args[0].detail).to.deep.equal({ id: hacia });
       });
     });
 
-    it("en los extremos las flechas no emiten", () => {
+    test("en los extremos las flechas no emiten", () => {
       const spy = listen(ConsultaEventos.EXAMEN_SELECCIONADO);
       const el = mount("ofiuco-exam-results");
       el.model = modelo({ seleccionado: "a" });
-
       q(el, ".lista").dispatchEvent(
         new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }),
       );
-
       expect(spy.called).to.equal(false);
     });
 
-    it("la flecha abajo sin selección elige el primero", () => {
+    test("la flecha abajo sin selección elige el primero", () => {
       const spy = listen(ConsultaEventos.EXAMEN_SELECCIONADO);
       const el = mount("ofiuco-exam-results");
       el.model = modelo({ seleccionado: null });
-
       q(el, ".lista").dispatchEvent(
         new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
       );
-
       expect(spy.firstCall.args[0].detail).to.deep.equal({ id: "a" });
     });
 
-    it("una tecla no soportada se ignora", () => {
+    test("una tecla no soportada se ignora", () => {
       const spy = listen(ConsultaEventos.EXAMEN_SELECCIONADO);
       const el = mount("ofiuco-exam-results");
       el.model = modelo();
-
       q(el, ".lista").dispatchEvent(
         new KeyboardEvent("keydown", { key: "x", bubbles: true }),
       );
-
       expect(spy.called).to.equal(false);
     });
   });
 
-  describe("campos de resultado e interpretación", () => {
-    it("muestran los valores del examen seleccionado", () => {
+  suite("campos de resultado e interpretación", () => {
+    test("muestran los valores del examen seleccionado", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo();
-
       expect(area(el, "resultado").value).to.equal("90 mg/dl");
       expect(area(el, "interpretacion").value).to.equal("Normal");
     });
 
-    it("cambian de contenido al cambiar la selección", () => {
+    test("cambian de contenido al cambiar la selección", () => {
       const el = mount("ofiuco-exam-results");
       el.model = modelo();
-
       el.model = modelo({ seleccionado: "b" });
-
       expect(area(el, "resultado").value).to.equal("");
       expect(area(el, "interpretacion").value).to.equal("");
     });
 
-    it("escribir emite RESULTADO_CAMBIADO con el examen, el campo y el valor", () => {
+    test("escribir emite RESULTADO_CAMBIADO con el examen, el campo y el valor", () => {
       const spy = listen(ConsultaEventos.RESULTADO_CAMBIADO);
       const el = mount("ofiuco-exam-results");
       el.model = modelo({ seleccionado: "b" });
-
       escribir(el, "resultado", "plaquetas bajas");
       escribir(el, "interpretacion", "Hay que repetirlo");
-
       expect(spy.firstCall.args[0].detail).to.deep.equal({
         id: "b",
         campo: "resultado",
@@ -280,17 +277,15 @@ describe("<ofiuco-exam-results>", () => {
       });
     });
 
-    it("el value-changed interno no se filtra fuera del componente", () => {
+    test("el value-changed interno no se filtra fuera del componente", () => {
       const spy = listen("value-changed");
       const el = mount("ofiuco-exam-results");
       el.model = modelo();
-
       escribir(el, "resultado", "algo");
-
       expect(spy.called).to.equal(false);
     });
 
-    it("reasignar el mismo valor no reescribe el campo (conserva el cursor)", () => {
+    test("reasignar el mismo valor no reescribe el campo (conserva el cursor)", () => {
       const el = mount("ofiuco-exam-results");
       el.model = modelo();
       escribir(el, "resultado", "90 mg/dl y más");
@@ -298,45 +293,37 @@ describe("<ofiuco-exam-results>", () => {
         "textarea",
       );
       interno.setSelectionRange(3, 3);
-
       el.model = modelo({
         valores: {
           ...modelo().valores,
           a: { resultado: "90 mg/dl y más", interpretacion: "Normal" },
         },
       });
-
       expect(interno.selectionStart).to.equal(3);
     });
 
-    it("en modo solo lectura los campos quedan readonly", () => {
+    test("en modo solo lectura los campos quedan readonly", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo({ readonly: true });
-
       expect(area(el, "resultado").hasAttribute("readonly")).to.equal(true);
       expect(area(el, "interpretacion").hasAttribute("readonly")).to.equal(
         true,
       );
     });
 
-    it("un examen que se quitará al guardar queda readonly aunque el paso sea editable", () => {
+    test("un examen que se quitará al guardar queda readonly aunque el paso sea editable", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo({
         items: [
           { id: "a", nombre: "Glucosa", tieneResultado: true, quitando: true },
         ],
       });
-
       expect(area(el, "resultado").hasAttribute("readonly")).to.equal(true);
     });
 
-    it("editable y sin quitar: los campos no son readonly", () => {
+    test("editable y sin quitar: los campos no son readonly", () => {
       const el = mount("ofiuco-exam-results");
-
       el.model = modelo();
-
       expect(area(el, "resultado").hasAttribute("readonly")).to.equal(false);
     });
   });
