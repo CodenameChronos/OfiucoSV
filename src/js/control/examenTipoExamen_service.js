@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import ExamenTipoExamen from "../entity/examen_tipo_examen.js";
+import ExamenTipoExamen from "../entity/examenTipoExamen.js";
 
 /**
  * Resource: examen/{idExamen}/tipoExamen

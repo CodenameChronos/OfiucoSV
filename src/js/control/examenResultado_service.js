@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import ExamenResultado from "../entity/examen_resultado.js";
+import ExamenResultado from "../entity/examenResultado.js";
 
 /**
  * Resource: ordenExamen/{idOrdenExamen}/resultado

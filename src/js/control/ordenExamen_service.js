@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import OrdenExamen from "../entity/orden_examen.js";
+import OrdenExamen from "../entity/ordenExamen.js";
 
 /**
  * Resource: consultaProcedimientoPaso/{idConsultaProcedimientoPaso}/ordenExamen

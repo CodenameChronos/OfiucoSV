@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import TipoExamen from "../entity/tipo_examen.js";
+import TipoExamen from "../entity/tipoExamen.js";
 
 export default class TipoExamenService extends DefaultService {
   constructor() {

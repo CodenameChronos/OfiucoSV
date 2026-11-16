@@ -1,8 +1,8 @@
-import OrdenExamen from "../entity/orden_examen.js";
-import ExamenResultado from "../entity/examen_resultado.js";
-import { escribirPaso, leerPaso } from "./observaciones_codec.js";
-import { escribirIds } from "./indicaciones_codec.js";
-import { cambiosDeResultados } from "./atencion_reglas.js";
+import OrdenExamen from "../entity/ordenExamen.js";
+import ExamenResultado from "../entity/examenResultado.js";
+import { escribirPaso, leerPaso } from "./observaciones_service.js";
+import { escribirIds, leerIds } from "./indicaciones_service.js";
+import { cambiosDeResultados } from "./reglas_consulta.js";
 
 const texto = (v) => String(v ?? "").trim();
 
@@ -90,6 +90,7 @@ function obtenerOrdenesInfo(e) {
     return {
       idOrden: o.idOrdenExamen,
       indicaciones: o.indicaciones,
+      idPpe: leerIds(o.indicaciones)[0] ?? null,
       resultado: r
         ? {
             id: r.idExamenResultado,

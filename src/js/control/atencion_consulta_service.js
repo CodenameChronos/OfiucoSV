@@ -1,15 +1,15 @@
 import ConsultaService from "./consulta_service.js";
-import ConsultaProcedimientoService from "./consulta_procedimiento_service.js";
-import ConsultaProcedimientoPasoService from "./consulta_procedimiento_paso_service.js";
-import ProcedimientoPasoService from "./procedimiento_paso_service.js";
-import ProcedimientoPasoSecuenciaService from "./procedimiento_paso_secuencia_service.js";
-import OrdenExamenService from "./orden_examen_service.js";
-import ExamenResultadoService from "./examen_resultado_service.js";
+import ConsultaProcedimientoService from "./consultaProcedimiento_service.js";
+import ConsultaProcedimientoPasoService from "./consultaProcedimientoPaso_service.js";
+import ProcedimientoPasoService from "./procedimientoPaso_service.js";
+import ProcedimientoPasoSecuenciaService from "./procedimientoPasoSecuencia_service.js";
+import OrdenExamenService from "./ordenExamen_service.js";
+import ExamenResultadoService from "./examenResultado_service.js";
 import PersonaService from "./persona_service.js";
 import ExamenService from "./examen_service.js";
-import ProcedimientoPasoExamenService from "./procedimiento_paso_examen_service.js";
-import ConsultaProcedimientoPaso from "../entity/consulta_procedimiento_paso.js";
-import { anterior, siguiente } from "./secuencia_lineal.js";
+import ProcedimientoPasoExamenService from "./procedimientoPasoExamen_service.js";
+import ConsultaProcedimientoPaso from "../entity/consultaProcedimientoPaso.js";
+import { anterior, siguiente } from "./secuencia_service.js";
 import {
   Estado,
   ErrorEstado,
@@ -19,21 +19,21 @@ import {
   alRetroceder,
   alFinalizar,
 } from "./estado_paso.js";
-import { leerIds } from "./indicaciones_codec.js";
+import { leerIds, escribirIds } from "./indicaciones_service.js";
 import {
   ordenesSinResultado,
   mensajeResultadosPendientes,
   mensajeExamenesQuitados,
   planificarSeleccion,
-} from "./atencion_reglas.js";
+} from "./reglas_consulta.js";
 
 // Importar los nuevos módulos atómicos
 import {
   cargarDatosAtencion,
   _cargarOrdenes,
 } from "./atencion/atencion_loader.js";
-import { escribirCambiosAtencion } from "./atencion/atencion_writer.js";
-import { construirVista } from "./atencion/atencion_mapper.js";
+import { escribirCambiosAtencion } from "./atencion_consulta_writer.js";
+import { construirVista } from "./atencion_consulta_mapper.js";
 
 export class ConfirmacionRequerida extends Error {
   constructor(mensaje, avisos = [mensaje]) {

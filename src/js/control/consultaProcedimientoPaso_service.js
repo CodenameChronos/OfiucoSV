@@ -1,5 +1,5 @@
 import DefaultService from "./default_service.js";
-import ConsultaProcedimientoPaso from "../entity/consulta_procedimiento_paso.js";
+import ConsultaProcedimientoPaso from "../entity/consultaProcedimientoPaso.js";
 
 /**
  * Resource: consultaProcedimiento/{idConsultaProcedimiento}/paso

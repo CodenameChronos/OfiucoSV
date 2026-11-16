@@ -5,7 +5,7 @@
  * es quien convierte las entities (con sus relaciones anidadas) a estas
  * formas, de modo que estas reglas no dependen del JSON del backend.
  */
-import { leerIds, escribirIds } from "./indicaciones_codec.js";
+import { leerIds, escribirIds } from "./indicaciones_service.js";
 import { Estado, parsearEstado } from "./estado_paso.js";
 
 /**

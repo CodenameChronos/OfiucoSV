@@ -1,4 +1,4 @@
-import { leerPaso } from "./observaciones_codec.js";
+import { leerPaso } from "./observaciones_service.js";
 import {
   Estado,
   aEstadoVisual,
@@ -7,7 +7,7 @@ import {
   puedeRetroceder,
   puedeFinalizar,
 } from "./estado_paso.js";
-import { calcularEdad } from "./atencion_reglas";
+import { calcularEdad } from "./reglas_consulta.js";
 
 export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
   const { estado, haySiguiente, hayAnterior } = contextoPasoFn();

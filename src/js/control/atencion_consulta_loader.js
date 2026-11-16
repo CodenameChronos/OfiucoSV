@@ -1,6 +1,6 @@
 import Persona from "../entity/persona.js";
-import { ordenar } from "./secuencia_lineal.js";
-import { pasoActual } from "./atencion_reglas.js";
+import { ordenar } from "./secuencia_service.js";
+import { pasoActual } from "./reglas_consulta.js";
 
 export async function cargarDatosAtencion(f, ids, abrirPasoCallback) {
   const { idPersonaRol, idConsulta } = ids;
