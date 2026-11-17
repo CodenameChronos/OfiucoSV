@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GalenoSV · Portal Clínico</title>
-    <link rel="manifest" href="./src/manifest.json" />
+    <link rel="manifest" href="./manifest.json" />
     <link rel="stylesheet" href="./resources/styles/components/tokens.css" />
     <link rel="stylesheet" href="./resources/styles/palette.css" />
     <link rel="stylesheet" href="./resources/styles/main.css" />
@@ -28,5 +28,16 @@
     <main id="OfiucoSV" aria-live="polite"></main>
     <ofiuco-footer></ofiuco-footer>
     <script type="module" src="./js/ofiuco-spa-orquestador.js"></script>
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./serviceWorker.js")
+            .then((reg) => console.log("SW registrado:", reg.scope))
+            .catch((err) => console.error("Error registrando SW:", err));
+        });
+      }
+    </script>
   </body>
 </html>

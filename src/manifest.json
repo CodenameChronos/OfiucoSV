@@ -1,40 +1,47 @@
 {
-  "short_name": "GalenoSV",
-  "name": "GalenoSV - Gestión Clínica",
-  "start_url": "../index.html",
-  "scope": "../",
+  "short_name": "OfiucoSV",
+  "name": "OfiucoSV - Gestión Clínica",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f2f7f6",
   "theme_color": "#123b4a",
-  "orientation": "any",
+  "orientation": "landscape",
   "icons": [
     {
-      "src": "./resources/img/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "./resources/img/icons/galeno-17-09-2026.svg",
+      "sizes": "203x125",
+      "type": "image/svg",
       "purpose": "any maskable"
     },
     {
-      "src": "./resources/img/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "./resources/img/icons/galeno-06-10-2026.svg",
+      "sizes": "285x175",
+      "type": "image/svg",
       "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "./resources/ss/desktop.png",
-      "sizes": "1200x780",
+      "src": "./resources/img/screenshots/ofiuco-ss-1-17.11.26.png",
+      "sizes": "1269x1072",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Vista de escritorio de GalenoSV"
+      "label": "Vista de citas de paciente"
     },
     {
-      "src": "./resources/ss/mobile.png",
-      "sizes": "540x960",
+      "src": "./resources/img/screenshots/ofiuco-ss-2-17.11.26.png",
+      "sizes": "1600x992",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Vista móvil de GalenoSV"
+      "form_factor": "wide",
+      "label": "Vista de dashboard de empleados"
+    },
+    {
+      "src": "./resources/img/screenshots/ofiuco-ss-3-17.11.26.png",
+      "sizes": "1600x991",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Vista de consulta"
     }
   ]
 }
