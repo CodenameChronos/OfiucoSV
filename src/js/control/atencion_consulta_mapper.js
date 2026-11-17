@@ -11,6 +11,19 @@ import {
 } from "./estado_paso.js";
 import { calcularEdad } from "./reglas_consulta.js";
 
+/** Normaliza un id para compararlo (minúsculas, nunca null). */
+const clave = (id) => String(id ?? "").toLowerCase();
+
+/** Extrae el UUID de un idPersonaRol ya sea string u objeto anidado. */
+function obtenerIdRol(valor) {
+  if (!valor) return null;
+  if (typeof valor === "string") return clave(valor);
+  if (typeof valor === "object") {
+    return clave(valor.idPersonaRol ?? valor.id ?? null);
+  }
+  return clave(valor);
+}
+
 export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
   const { estado, haySiguiente, hayAnterior } = contextoPasoFn();
   const p = e.paciente;
@@ -31,8 +44,23 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
       String(x.nombre ?? "").localeCompare(String(y.nombre ?? "")),
     );
 
-  const procedimientos = [...(e.procedimientosPorId?.values() ?? [])].map(
-    (proc, idx) => {
+  console.table(
+    [...(e.procedimientosPorId?.values() ?? [])].map((proc) => {
+      const fila = proc.filaPor.get(proc.idActual);
+      return {
+        nombre: proc.nombreProcedimiento,
+        completa: proc.completa,
+        idActual: proc.idActual,
+        estadoPaso: fila?.estado,
+        responsable: obtenerIdRol(fila?.idPersonaRol),
+        empleado: obtenerIdRol(e.idPersonaRolEmpleado),
+      };
+    }),
+  );
+
+  // FILTRADO ESTRICTO: Solo mostrar procedimientos cuyo paso actual pertenezca al usuario de turno o ya estén finalizados
+  const procedimientos = [...(e.procedimientosPorId?.values() ?? [])]
+    .map((proc, idx) => {
       const completados = proc.orden.filter(
         (idPaso) =>
           parsearEstado(proc.filaPor.get(idPaso)?.estado) === Estado.FINALIZADO,
@@ -45,9 +73,11 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
         pasosCompletados: completados,
         totalPasos: proc.orden.length,
         activo: proc.cp.idConsultaProcedimiento === e.idCpActivo,
+        propio: esProcedimientoPropio(proc, e.idPersonaRolEmpleado),
       };
-    },
-  );
+    })
+    // Los ajenos ni siquiera salen del servicio; el activo siempre se conserva.
+    .filter((p) => p.activo || p.propio);
 
   const quedanOtrosProcedimientos = procedimientos.some(
     (proc) => !proc.activo && !proc.completa,
@@ -55,11 +85,8 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
 
   return {
     completa: e.completa,
-    // Todos los procedimientos finalizados.
     consultaCompleta: Boolean(e.consultaCompleta),
-    // La consulta ya se cerró (finalizarConsulta).
     consultaFinalizada: Boolean(e.consultaFinalizada),
-    // La consulta puede cerrarse ahora: todos finalizados y aún abierta.
     puedeFinalizarConsulta: puedeFinalizarConsulta(
       e.consultaCompleta,
       e.consultaFinalizada,
@@ -95,7 +122,6 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
       editable: puedeEditar(estado),
       puedeAvanzar: puedeAvanzar(estado, haySiguiente),
       puedeRetroceder: puedeRetroceder(estado, hayAnterior),
-      // Finaliza el PROCEDIMIENTO activo (último paso); no la consulta.
       puedeFinalizar: puedeFinalizar(estado, haySiguiente),
       puedeFinalizarProcedimiento: puedeFinalizar(estado, haySiguiente),
     },
@@ -116,4 +142,15 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
           : null,
       })),
   };
+}
+
+/** El procedimiento está "En curso" en su paso actual y ese paso es del empleado de la sesión. */
+export function esProcedimientoPropio(proc, idPersonaRolEmpleado) {
+  const idEmpleado = obtenerIdRol(idPersonaRolEmpleado);
+  if (!idEmpleado) return false;
+  const fila = proc.filaPor.get(proc.idActual);
+  return (
+    parsearEstado(fila?.estado) !== Estado.FINALIZADO &&
+    obtenerIdRol(fila?.idPersonaRol) === idEmpleado
+  );
 }

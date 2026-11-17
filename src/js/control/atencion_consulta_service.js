@@ -40,7 +40,10 @@ import {
   _activarProcedimientoEnContexto,
 } from "./atencion_consulta_loader.js";
 import { escribirCambiosAtencion } from "./atencion_consulta_writter.js";
-import { construirVista } from "./atencion_consulta_mapper.js";
+import {
+  construirVista,
+  esProcedimientoPropio,
+} from "./atencion_consulta_mapper.js";
 
 export class ConfirmacionRequerida extends Error {
   constructor(mensaje, avisos = [mensaje]) {
@@ -108,12 +111,22 @@ export default class AtencionService {
       (id, estado) => this.#abrirPaso(id, estado),
       idCpPreferido,
     );
+    this.#e.idPersonaRolEmpleado = this.#idPersonaRolEmpleado; // <-- Asignamos el empleado de turno
     return this.#vista();
   }
 
   async seleccionarProcedimiento(idConsultaProcedimiento) {
     const e = this.#exigirCarga();
     if (e.idCpActivo === idConsultaProcedimiento) return this.#vista();
+
+    const destino = e.procedimientosPorId?.get(idConsultaProcedimiento);
+    if (
+      !destino ||
+      !esProcedimientoPropio(destino, this.#idPersonaRolEmpleado)
+    ) {
+      throw new Error("No tiene permiso para abrir ese procedimiento.");
+    }
+
     await _activarProcedimientoEnContexto(
       this.#f,
       e,

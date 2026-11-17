@@ -216,9 +216,7 @@ export class OfiucoPageConsulta extends BaseComponent {
       this.#ultima = this.#alAvanzar();
     });
     escuchar(ConsultaEventos.PASO_ANTERIOR, () => {
-      this.#ultima = this.#ejecutar((o) =>
-        this.#servicio.retroceder(this.#borrador, o),
-      );
+      this.#ultima = this.#alRetroceder();
     });
     escuchar(ConsultaEventos.FINALIZAR, () => {
       this.#ultima = this.#alFinalizar();
@@ -296,10 +294,28 @@ export class OfiucoPageConsulta extends BaseComponent {
     return pasoAnterior !== undefined && pasoAnterior !== vista.paso.id;
   }
 
+  /** Un procedimiento aparece en el selector si es el activo, o si está en curso y es del usuario de la sesión. */
+  #esSeleccionable(p) {
+    return p.activo || p.propio;
+  }
+
   // ---------------------------------------------------------------- acciones
 
   async #alCambiarProcedimiento(idCp) {
     if (this.#ocupado || !this.#vista) return;
+
+    const destino = (this.#vista.procedimientos ?? []).find(
+      (p) => String(p.idConsultaProcedimiento) === String(idCp),
+    );
+    if (!destino || !this.#esSeleccionable(destino)) {
+      this.#selectorProc.value = this.#vista.idConsultaProcedimientoActivo;
+      this.#toast.mostrar({
+        tipo: "error",
+        mensaje: "No tiene permiso para abrir ese procedimiento.",
+      });
+      return;
+    }
+
     if (hayCambios(this.#borrador, this.#vista)) {
       const descartar = await this.#dialogo.preguntar({
         titulo: "Cambios sin guardar",
@@ -321,6 +337,32 @@ export class OfiucoPageConsulta extends BaseComponent {
       (o) => this.#servicio.guardarCambios(this.#borrador, o),
       "Cambios guardados",
     );
+  }
+
+  async #alRetroceder() {
+    if (this.#ocupado || !this.#vista) return;
+    this.#ocupado = true;
+    this.#pintar();
+
+    try {
+      const vista = await this.#conConfirmacion((o) =>
+        this.#servicio.retroceder(this.#borrador, o),
+      );
+      if (vista === null) return; // el usuario canceló la confirmación
+
+      this.dispatchEvent(
+        new CustomEvent(ConsultaEventos.SALIR, {
+          detail: { idConsulta: this.#contexto?.idConsulta },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    } catch (error) {
+      this.#toast.mostrar({ tipo: "error", mensaje: mensajeDeError(error) });
+    } finally {
+      this.#ocupado = false;
+      this.#pintar();
+    }
   }
 
   async #alAvanzar() {
@@ -466,16 +508,24 @@ export class OfiucoPageConsulta extends BaseComponent {
     const bloqueado = lectura || this.#ocupado;
 
     const procs = vista.procedimientos ?? [];
-    this.#selectorProc.hidden = procs.length <= 1;
+    console.table(
+      procs.map((p) => ({
+        id: p.idConsultaProcedimiento,
+        nombre: p.nombre,
+        activo: p.activo,
+        propio: p.propio,
+        estado: p.estado,
+        seleccionable: this.#esSeleccionable(p),
+      })),
+    );
+    const visibles = procs.filter((p) => this.#esSeleccionable(p));
+    this.#selectorProc.hidden = visibles.length <= 1;
     this.#selectorProc.disabled = this.#ocupado;
     this.#selectorProc.replaceChildren(
-      ...procs.map((p) =>
+      ...visibles.map((p) =>
         h(
           "option",
-          {
-            value: p.idConsultaProcedimiento,
-            selected: p.activo,
-          },
+          { value: p.idConsultaProcedimiento, selected: p.activo },
           `${p.nombre} (${p.pasosCompletados}/${p.totalPasos})${p.completa ? " — Finalizado" : ""}`,
         ),
       ),
