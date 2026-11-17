@@ -23,15 +23,29 @@ export default class ProcedimientoPasoExamenService extends DefaultService {
    * @returns {Promise<ProcedimientoPasoExamen[]>}
    * @throws {TypeError} si falta alguno de los dos ids
    */
-  listarPorProcedimientoPaso(idProcedimiento, idProcedimientoPaso) {
+  async listarPorProcedimientoPaso(idProcedimiento, idProcedimientoPaso) {
     if (!idProcedimiento) {
       throw new TypeError("idProcedimiento es obligatorio");
     }
     if (!idProcedimientoPaso) {
       throw new TypeError("idProcedimientoPaso es obligatorio");
     }
-    const porPaso = new ProcedimientoPasoExamenService();
-    porPaso.URL = `${this._BASE_URL}procedimiento/${idProcedimiento}/paso/${idProcedimientoPaso}/examen`;
-    return porPaso.findAll();
+    // Usa el endpoint existente @Path("examen/{idExamen}/paso")
+    const porPaso = new ProcedimientoPasoExamenService(
+      "00000000-0000-0000-0000-000000000000",
+    );
+    const todos = await porPaso.findAll();
+    const idPasoNorm = String(idProcedimientoPaso).toLowerCase();
+
+    return todos.filter((ppe) => {
+      const idPasoPpe =
+        typeof ppe.idProcedimientoPaso === "string"
+          ? ppe.idProcedimientoPaso
+          : ppe.idProcedimientoPaso?.idProcedimientoPaso;
+      return (
+        String(idPasoPpe ?? "").toLowerCase() === idPasoNorm &&
+        ppe.activo !== false
+      );
+    });
   }
 }

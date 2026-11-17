@@ -65,16 +65,29 @@ export function elegirResponsable(candidatos, azar = Math.random) {
 }
 
 /**
- * Clínica a la que pertenece una consulta. Según el esquema la consulta NO
- * tiene clínica propia: pertenece a un persona_rol (consulta.id_persona_rol) y
- * la clínica es persona_rol.id_clinica. Cada relación puede llegar como id
- * suelto o como entidad anidada.
- * @returns {string|null} null si no se puede determinar
+ * Clínica a la que pertenece una consulta. Según el DDL la consulta NO tiene
+ * clínica propia: pertenece a un persona_rol (consulta.id_persona_rol) y la
+ * clínica es persona_rol.id_clinica.
+ *
+ * Mira, en este orden, lo que puede traer el objeto que le llegue:
+ *  1. `consulta.clinica`: la entity Consulta ya extrae la clínica del persona_rol
+ *     anidado y reduce `idPersonaRol` a su uuid, así que casi siempre está aquí.
+ *  2. `consulta.idPersonaRol.idClinica`: por si llega el persona_rol anidado sin
+ *     aplanar.
+ * Cada clínica puede llegar como id suelto o como entidad anidada.
+ *
+ * @returns {string|null} null si la consulta no la trae (entonces hay que
+ *          consultar el persona_rol del paciente)
  */
 export function idClinicaDeConsulta(consulta) {
+  const aId = (clinica) =>
+    typeof clinica === "string" ? clinica : clinica?.idClinica;
+
+  const directa = aId(consulta?.clinica);
+  if (directa) return directa;
+
   const rol = consulta?.idPersonaRol;
-  if (rol === null || typeof rol !== "object") return null;
-  const clinica = rol.idClinica;
-  const id = typeof clinica === "string" ? clinica : clinica?.idClinica;
-  return id || null;
+  if (rol !== null && typeof rol === "object")
+    return aId(rol.idClinica) || null;
+  return null;
 }

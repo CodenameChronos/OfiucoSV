@@ -4,7 +4,8 @@
  */
 export default class ConsultaProcedimientoPaso {
   constructor(datos = {}) {
-    this.idConsultaProcedimientoPaso = datos.idConsultaProcedimientoPaso ?? null;
+    this.idConsultaProcedimientoPaso =
+      datos.idConsultaProcedimientoPaso ?? null;
     this.fechaInicio = datos.fechaInicio ?? null;
     this.fechaFin = datos.fechaFin ?? null;
     this.estado = datos.estado ?? null;
@@ -20,22 +21,31 @@ export default class ConsultaProcedimientoPaso {
 
   idDeConsultaProcedimiento() {
     const relacion = this.idConsultaProcedimiento;
-    return (typeof relacion === "string" ? relacion : relacion?.idConsultaProcedimiento) ?? null;
+    return (
+      (typeof relacion === "string"
+        ? relacion
+        : relacion?.idConsultaProcedimiento) ?? null
+    );
   }
 
   toJSON() {
-    const idConsultaProcedimiento = this.idDeConsultaProcedimiento();
+    const ref = (valor, clave) => {
+      if (!valor) return null;
+      const id = typeof valor === "string" ? valor : valor[clave];
+      return id ? { [clave]: id } : null;
+    };
+
     return {
-      idConsultaProcedimientoPaso: this.idConsultaProcedimientoPaso,
-      fechaInicio: this.fechaInicio,
-      fechaFin: this.fechaFin,
-      estado: this.estado,
-      idConsultaProcedimiento: idConsultaProcedimiento
-        ? { idConsultaProcedimiento }
-        : null,
-      idProcedimientoPaso: this.idProcedimientoPaso,
-      idPersonaRol: this.idPersonaRol,
-      ordenExamenList: this.ordenExamenList,
+      idConsultaProcedimientoPaso: this.idConsultaProcedimientoPaso ?? null,
+      estado: this.estado ?? null,
+      fechaInicio: this.fechaInicio ?? null,
+      fechaFin: this.fechaFin ?? null,
+      idPersonaRol: ref(this.idPersonaRol, "idPersonaRol"),
+      idConsultaProcedimiento: ref(
+        this.idConsultaProcedimiento,
+        "idConsultaProcedimiento",
+      ),
+      idProcedimientoPaso: ref(this.idProcedimientoPaso, "idProcedimientoPaso"),
     };
   }
 }

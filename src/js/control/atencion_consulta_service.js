@@ -71,6 +71,8 @@ const FABRICA_POR_DEFECTO = {
     ),
   personalDeClinica: (idClinica) =>
     new PersonaRolService().listarPersonalDeClinica(idClinica),
+  // persona_rol de una persona (para saber su clínica)
+  personaRol: (idPersona) => new PersonaRolService(idPersona),
 };
 
 const tieneTexto = (resultado) =>
@@ -415,12 +417,32 @@ export default class AtencionService {
     );
   }
 
+  /**
+   * Clínica de la consulta. Según el DDL no es de la consulta sino de su
+   * persona_rol (persona_rol.id_clinica). Casi siempre ya viene en la consulta;
+   * si no, se consulta el persona_rol del paciente. Se guarda en el contexto
+   * de la carga para no repetir la consulta en cada sorteo.
+   */
+  async #idClinicaDe(e) {
+    if (e.idClinica) return e.idClinica;
+    let idClinica = idClinicaDeConsulta(e.consulta);
+    const idPersonaRol = this.#ids?.idPersonaRol;
+    const idPersona = e.paciente?.idPersona;
+    if (!idClinica && idPersonaRol && idPersona) {
+      const personaRol = await this.#f
+        .personaRol(idPersona)
+        .findById(idPersonaRol);
+      idClinica = personaRol?.idDeClinica?.() ?? null;
+    }
+    if (idClinica) e.idClinica = idClinica;
+    return idClinica;
+  }
+
   async #sortearResponsable(e) {
-    // La consulta no tiene clínica propia: sale de su persona_rol (id_clinica).
-    const idClinica = idClinicaDeConsulta(e.consulta);
+    const idClinica = await this.#idClinicaDe(e);
     if (!idClinica) {
       throw new Error(
-        "No se pudo determinar la clínica de la consulta (se esperaba consulta.idPersonaRol.idClinica)",
+        "No se pudo determinar la clínica de la consulta (ni la consulta ni el persona_rol del paciente la traen)",
       );
     }
     const personal = candidatosResponsable(
@@ -450,8 +472,15 @@ export default class AtencionService {
       fila.estado = Estado.EN_CURSO;
       fila.fechaFin = null;
       fila.fechaInicio = fila.fechaInicio ?? this.#ahora();
-      if (idResponsable) fila.idPersonaRol = idResponsable;
-      fila.idConsultaProcedimiento = e.cp.idConsultaProcedimiento;
+
+      // Garantiza que idPersonaRol sea { idPersonaRol: uuid } (START_OBJECT) y no un string
+      const uuidActual =
+        typeof fila.idPersonaRol === "string"
+          ? fila.idPersonaRol
+          : fila.idPersonaRol?.idPersonaRol;
+      const uuidFinal = idResponsable || uuidActual || null;
+      fila.idPersonaRol = uuidFinal ? { idPersonaRol: uuidFinal } : null;
+
       await svc.update(fila.idConsultaProcedimientoPaso, fila);
     } else {
       const nueva = new ConsultaProcedimientoPaso({
@@ -459,7 +488,7 @@ export default class AtencionService {
         fechaInicio: this.#ahora(),
         idConsultaProcedimiento: e.cp.idConsultaProcedimiento,
         idProcedimientoPaso: idPaso,
-        idPersonaRol: idResponsable,
+        idPersonaRol: idResponsable ? { idPersonaRol: idResponsable } : null,
       });
       nueva.idConsultaProcedimientoPaso = await svc.create(nueva);
       e.filaPor.set(idPaso, nueva);
