@@ -1,6 +1,31 @@
+/**
+ * @fileoverview Web Component base `<ofiuco-tarjeta-simple>` que define una estructura
+ * genérica de tarjeta con Shadow DOM abierto y cuatro ranuras nombradas (`entity-id`,
+ * `side-info`, `body` y `footer`) para componer tarjetas especializadas mediante herencia
+ * o proyección desde el Light DOM.
+ */
+
+/**
+ * Componente web base `<ofiuco-tarjeta-simple>`.
+ *
+ * Construye un contenedor estructurado en tres áreas dentro de su `ShadowRoot` (`this.root`):
+ * - `.top-bar`: Encabezado dividido en dos secciones (`entity-id` y `side-info`).
+ * - `.body`: Cuerpo principal (`slot="body"`).
+ * - `.footer`: Pie de tarjeta (`slot="footer"`).
+ *
+ * Incluye la hoja de estilos `./resources/styles/tarjeta_simple.css` y sirve como
+ * clase padre para componentes como `TarjetaConsulta`.
+ *
+ * @extends HTMLElement
+ */
 class TarjetaSimple extends HTMLElement {
+  /**
+   * Inicializa el `ShadowRoot` abierto (`this.root`), construye las secciones
+   * con sus respectivos `<slot>` nombrados y adjunta la hoja de estilos base.
+   */
   constructor() {
     super();
+    /** @type {ShadowRoot} Raíz Shadow DOM abierta del componente. */
     this.root = this.attachShadow({ mode: "open" });
 
     // Creacion de div con seccion doble
@@ -31,12 +56,13 @@ class TarjetaSimple extends HTMLElement {
   }
 
   /**
-   * Crea un <div class="..."> que contiene un <slot name="...">.
-   * Generalizado como un metodo "padre" y no repetir la logica n veces
-   * @param {string} clase         clase CSS de la sección
-   * @param {string} nombreSlot    nombre del slot
-   * @param {string} textoPorDefecto contenido de respaldo del slot
-   * @returns {HTMLDivElement}
+   * Crea un `<div class="...">` que contiene un `<slot name="...">`.
+   * Generalizado como un método privado para no repetir la lógica n veces.
+   *
+   * @param {string} clase - Clase CSS aplicada al contenedor `<div>` de la sección.
+   * @param {string} nombreSlot - Nombre del atributo `name` asignado al elemento `<slot>`.
+   * @param {string} textoPorDefecto - Texto de respaldo mostrado cuando el slot no recibe contenido proyectado.
+   * @returns {HTMLDivElement} Contenedor `<div>` con su `<slot>` interno.
    */
   #crearSeccion(clase, nombreSlot, textoPorDefecto) {
     const seccion = document.createElement("div");

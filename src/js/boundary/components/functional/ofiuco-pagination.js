@@ -1,14 +1,50 @@
+/**
+ * @fileoverview Web Component `<ofiuco-pagination>` para controles de paginación.
+ * Calcula el total de páginas a partir de `total` y `page-size`, muestra el rango de
+ * elementos visibles junto con botones "Anterior" y "Siguiente", y despacha el evento
+ * `ofiuco:page-change` con el índice base 0 de la nueva página solicitada.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 
+/**
+ * Resuelve la URL absoluta de una hoja de estilos ubicada en el directorio `components`.
+ *
+ * @param {string} name - Nombre del archivo CSS (ej. `"pagination.css"`).
+ * @returns {string} URL resuelta de la hoja de estilos.
+ */
 const styleUrl = (name) =>
   new URL(`../../../../resources/styles/components/${name}`, import.meta.url).href;
 
-
+/**
+ * Componente web `<ofiuco-pagination>`.
+ *
+ * Atributos soportados:
+ * - `page`: Índice de la página actual (base 0).
+ * - `page-size`: Cantidad de registros mostrados por página (mínimo `1`).
+ * - `total`: Número total de registros disponibles (mínimo `0`).
+ * - `label`: Etiqueta accesible `aria-label` del elemento `<nav>` (por defecto `"Paginación"`).
+ *
+ * Si `total <= pageSize`, el componente oculta/limpia su contenido automáticamente.
+ * Al interactuar con los botones de navegación, emite el evento `ofiuco:page-change`
+ * (`bubbles: true`, `composed: true`) con `detail: { page }`.
+ *
+ * @extends BaseComponent
+ * @fires CustomEvent#ofiuco:page-change
+ */
 export class OfiucoPagination extends BaseComponent {
+  /**
+   * Lista de atributos HTML observados para actualizar la vista reactivamente.
+   * @type {string[]}
+   */
   static observedAttributes = ["page", "page-size", "total", "label"];
 
+  /**
+   * Hojas de estilo asociadas al Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [styleUrl("button.css"), styleUrl("pagination.css")];
 
   #nav;
@@ -37,21 +73,41 @@ export class OfiucoPagination extends BaseComponent {
     this.setAttribute("total", String(value));
   }
 
+  /**
+   * Construye el contenedor `<nav>` dentro del Shadow DOM y renderiza el estado inicial.
+   */
   render() {
     this.#nav = h("nav", { class: "pagination" });
     this.shadowRoot.append(this.#nav);
     this.#paint();
   }
 
+  /**
+   * Callback nativo de Custom Elements ejecutado cuando cambia algún atributo observado.
+   * Redibuja los controles de paginación si el componente ya fue renderizado.
+   */
   attributeChangedCallback() {
     if (this.rendered) this.#paint();
   }
 
+  /**
+   * Lee y parsea como entero base 10 un atributo numérico del elemento, devolviendo
+   * un valor por defecto si el atributo no existe o no es un número válido.
+   *
+   * @param {string} name - Nombre del atributo HTML.
+   * @param {number} fallback - Valor por defecto si el parseo resulta en `NaN`.
+   * @returns {number} Valor entero parseado o `fallback`.
+   */
   #number(name, fallback) {
     const parsed = Number.parseInt(this.getAttribute(name) ?? "", 10);
     return Number.isNaN(parsed) ? fallback : parsed;
   }
 
+  /**
+   * Calcula el número de páginas, acota la página actual dentro del rango válido
+   * `[0, pageCount - 1]` y actualiza el DOM interno del componente con la información
+   * de rango y los botones `"Anterior"` y `"Siguiente"`.
+   */
   #paint() {
     this.#nav.setAttribute("aria-label", this.getAttribute("label") || "Paginación");
 
@@ -86,6 +142,12 @@ export class OfiucoPagination extends BaseComponent {
     );
   }
 
+  /**
+   * Despacha el evento personalizado `ofiuco:page-change` con el nuevo índice de página
+   * atravesando el límite del Shadow DOM (`composed: true`) y burbujeando (`bubbles: true`).
+   *
+   * @param {number} page - Índice base 0 de la página seleccionada.
+   */
   #emit(page) {
     this.dispatchEvent(new CustomEvent("ofiuco:page-change", {
       detail: { page }, bubbles: true, composed: true

@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Web Component `<busqueda-citas>` correspondiente a la vista principal
+ * de la Historia de Usuario 1 (HU1): Búsqueda de Citas Médicas.
+ * Permite filtrar y consultar citas médicas mediante tipo y número de documento,
+ * clínica y rango de fechas, así como descargar el ticket PDF de cada consulta.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
@@ -12,20 +19,51 @@ import PersonaService from "../../../control/persona_service.js";
 import PersonaRolService from "../../../control/personaRol_service.js";
 import DocumentoService from "../../../control/documento_service.js";
 
+/** @type {number} Cantidad de registros solicitados por página en las consultas paginadas. */
 const TAMANO_PAGINA = 50;
+
+/** @type {number} Límite máximo de páginas a iterar para evitar ciclos infinitos. */
 const MAX_PAGINAS = 20;
+
+/** @type {string} Texto placeholder del input de documento cuando no hay tipo seleccionado. */
 const PLACEHOLDER_SIN_TIPO = "Seleccione tipo doc";
+
+/** @type {string} Texto placeholder por defecto del input de documento al seleccionar un tipo. */
 const PLACEHOLDER_CON_TIPO = "Ingrese número...";
 
-/** tipo_documento.activo y clinica.activo: un registro sin la bandera se trata como activo. */
+/**
+ * Evalúa si un registro de catálogo se encuentra activo.
+ * Un registro sin la bandera `activo` explícita en `false` se considera activo.
+ *
+ * @param {Object|null|undefined} registro - Objeto de catálogo (ej. tipo_documento o clinica).
+ * @returns {boolean} `true` si el registro está activo; `false` en caso contrario.
+ */
 const esActivo = (registro) => registro?.activo !== false;
 
-/** Una FK puede llegar como id (string) o como la entidad anidada. */
+/**
+ * Determina si un valor corresponde a un objeto entidad anidado (no nulo).
+ *
+ * @param {*} valor - Valor a evaluar.
+ * @returns {boolean} `true` si es un objeto no nulo.
+ */
 const esEntidad = (valor) => valor !== null && typeof valor === "object";
+
+/**
+ * Extrae el identificador de una llave foránea (FK), soportando tanto un ID primitivo
+ * como un objeto entidad anidado.
+ *
+ * @param {string|number|Object|null|undefined} fk - Valor de la llave foránea.
+ * @param {string} clave - Nombre de la propiedad identificadora dentro del objeto entidad.
+ * @returns {string|number|null} El identificador extraído o `null` si no existe.
+ */
 const idDe = (fk, clave) =>
   esEntidad(fk) ? (fk[clave] ?? null) : (fk ?? null);
 
-/** Devuelve la fecha local actual en formato YYYY-MM-DD para <input type="date">. */
+/**
+ * Obtiene la fecha local actual formateada como `YYYY-MM-DD`, compatible con `<input type="date">`.
+ *
+ * @returns {string} Fecha actual en formato `YYYY-MM-DD`.
+ */
 function fechaHoyLocal() {
   const hoy = new Date();
   const anio = hoy.getFullYear();
@@ -35,8 +73,11 @@ function fechaHoyLocal() {
 }
 
 /**
- * Normaliza fechas provenientes de Jakarta JSON-B (ej. "2026-10-29T16:26:54Z[UTC]")
- * eliminando el sufijo "[UTC]" para que Date() de JavaScript las parsee correctamente.
+ * Normaliza cadenas de fecha provenientes de Jakarta JSON-B (ej. `"2026-10-29T16:26:54Z[UTC]"`)
+ * eliminando el sufijo `"[UTC]"` para que el constructor `Date()` de JavaScript las parsee correctamente.
+ *
+ * @param {string|Date|null|undefined} valor - Fecha en formato string o instancia de `Date`.
+ * @returns {Date|null} Instancia válida de `Date` o `null` si el valor es vacío o inválido.
  */
 function parsearFechaUtc(valor) {
   if (!valor) return null;
@@ -49,9 +90,13 @@ function parsearFechaUtc(valor) {
 }
 
 /**
- * Valida el número contra tipo_documento.expresion_regular exigiendo que
- * coincida COMPLETO (la expresión puede venir con o sin anclas ^ $).
- * Una expresión inválida en la base de datos no bloquea al usuario.
+ * Valida un número de documento contra una expresión regular exigiendo coincidencia completa
+ * (envuelve el patrón con `^(?:...)$` por si viene con o sin anclas).
+ * Si el patrón no existe o es una expresión regular inválida en BD, permite continuar sin bloquear.
+ *
+ * @param {string|null|undefined} patron - Expresión regular definida en `tipo_documento`.
+ * @param {string} valor - Número de documento ingresado por el usuario.
+ * @returns {boolean} `true` si cumple el formato o si no hay patrón válido; `false` si no coincide.
  */
 function cumpleFormato(patron, valor) {
   if (!patron) return true;
@@ -63,10 +108,18 @@ function cumpleFormato(patron, valor) {
 }
 
 /**
- * <busqueda-citas>
+ * Componente web `<busqueda-citas>`.
  * Vista principal de la HU1: Búsqueda de Citas Médicas.
+ * Gestiona el formulario de filtros, la carga de catálogos, la consulta encadenada
+ * de documento -> persona -> rol -> consultas y el renderizado de resultados.
+ *
+ * @extends BaseComponent
  */
 export class BusquedaCitas extends BaseComponent {
+  /**
+   * Hojas de estilo asociadas al Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/busqueda_citas.css",
@@ -74,13 +127,13 @@ export class BusquedaCitas extends BaseComponent {
     ).href,
   ];
 
+  
   #tipoDocumentoService;
   #clinicaService;
   #consultaService;
   #personaService;
   #personaRolFactory;
   #documentoFactory;
-
   #acTipoDoc;
   #inputNumDoc;
   #acClinica;
@@ -88,12 +141,22 @@ export class BusquedaCitas extends BaseComponent {
   #dpHasta;
   #estadoEl;
   #gridResultados;
-
   #tipoDocSeleccionado = null;
   #clinicaSeleccionada = null;
   #clinicasMapa = new Map();
   #catalogos = null;
 
+  /**
+   * Crea una instancia de `BusquedaCitas` permitiendo inyección de dependencias para servicios y fábricas.
+   *
+   * @param {Object} [dependencias={}] - Servicios inyectados (por defecto instancia los servicios estándar).
+   * @param {TipoDocumentoService} [dependencias.tipoDocumentoService]
+   * @param {ClinicaService} [dependencias.clinicaService]
+   * @param {ConsultaService} [dependencias.consultaService]
+   * @param {PersonaService} [dependencias.personaService]
+   * @param {function(string): PersonaRolService} [dependencias.personaRolFactory]
+   * @param {function(string): DocumentoService} [dependencias.documentoFactory]
+   */
   constructor({
     tipoDocumentoService = new TipoDocumentoService(),
     clinicaService = new ClinicaService(),
@@ -111,11 +174,14 @@ export class BusquedaCitas extends BaseComponent {
     this.#documentoFactory = documentoFactory;
   }
 
-  /** Promesa de la carga de catálogos (útil en pruebas y para reintentar). */
   get catalogosListos() {
     return this.#catalogos ?? Promise.resolve();
   }
 
+  /**
+   * Construye la estructura DOM del componente dentro del Shadow DOM y registra
+   * todos los listeners de interacción de filtros, envío de formulario y descarga de tickets.
+   */
   render() {
     this.#acTipoDoc = h("ofiuco-auto-complete", {
       label: "Tipo Doc",
@@ -186,6 +252,7 @@ export class BusquedaCitas extends BaseComponent {
       "aria-label": "Resultados de citas médicas",
     });
 
+    // Habilita y configura el campo de número de documento al elegir un tipo de documento
     this.#acTipoDoc.addEventListener("option-selected", (event) => {
       this.#tipoDocSeleccionado = event.detail.option;
       const indicaciones = this.#tipoDocSeleccionado?.indicaciones;
@@ -196,6 +263,7 @@ export class BusquedaCitas extends BaseComponent {
       this.#ocultarEstado();
     });
 
+    // Reinicia y deshabilita el campo de número de documento si se limpia la selección
     this.#acTipoDoc.addEventListener("value-changed", () => {
       this.#tipoDocSeleccionado = null;
       this.#inputNumDoc.value = "";
@@ -213,6 +281,7 @@ export class BusquedaCitas extends BaseComponent {
       this.#clinicaSeleccionada = null;
     });
 
+    // Sincroniza límites mínimos y máximos entre selectores de fecha
     this.#dpDesde.addEventListener("change", () => {
       this.#dpHasta.minDate = this.#dpDesde.value || "";
     });
@@ -226,6 +295,7 @@ export class BusquedaCitas extends BaseComponent {
       this.buscar();
     });
 
+    // Escucha el evento personalizado emitido por <tarjeta-cita> para descargar el PDF
     this.#gridResultados.addEventListener("descargar-ticket", async (event) => {
       const consulta = event.detail?.consulta;
       const idConsulta = consulta?.idConsulta;
@@ -265,11 +335,21 @@ export class BusquedaCitas extends BaseComponent {
     );
   }
 
+  /**
+   * Ciclo de vida ejecutado cuando el componente se conecta al DOM.
+   * Inicia la carga de catálogos si aún no se ha ejecutado.
+   */
   onConnect() {
     if (!this.#catalogos) this.#catalogos = this.#cargarCatalogos();
   }
 
-  /** Lee todas las páginas de un catálogo (soporta { registros } o Array directo). */
+  /**
+   * Lee todas las páginas disponibles de un servicio de catálogo mediante `findRange`.
+   * Soporta respuestas estructuradas como `{ registros: Array }` o un `Array` directo.
+   *
+   * @param {Object} servicio - Instancia del servicio que implementa `findRange(first, max)`.
+   * @returns {Promise<Array<Object>>} Lista completa de registros acumulados.
+   */
   async #cargarTodos(servicio) {
     const registros = [];
     for (let pagina = 0; pagina < MAX_PAGINAS; pagina += 1) {
@@ -288,7 +368,14 @@ export class BusquedaCitas extends BaseComponent {
     return registros;
   }
 
-  /** Consulta una colección raíz del backend (ej. "documento", "persona-rol", "consulta"). */
+  /**
+   * Consulta de forma paginada una ruta relativa a la URL base del backend
+   * (ej. `"persona/{id}/persona-rol"`, `"persona-rol/{id}/consulta"`).
+   *
+   * @param {string} recurso - Ruta relativa y parámetros query del recurso REST.
+   * @returns {Promise<Array<Object>>} Lista completa de registros obtenidos.
+   * @throws {Error} Si la respuesta HTTP no es exitosa (`!resp.ok`).
+   */
   async #obtenerColeccionRaiz(recurso) {
     const base = (this.#personaService.URL ?? "").replace(/\/persona\/?$/, "/");
     const sep = recurso.includes("?") ? "&" : "?";
@@ -313,6 +400,13 @@ export class BusquedaCitas extends BaseComponent {
     return registros;
   }
 
+  /**
+   * Carga en paralelo los catálogos de tipos de documento y clínicas activas,
+   * poblando los componentes de autocompletado y el mapa caché de clínicas.
+   * Muestra un mensaje de error si ambos catálogos fallan.
+   *
+   * @returns {Promise<void>}
+   */
   async #cargarCatalogos() {
     try {
       const [resTipos, resClinicas] = await Promise.allSettled([
@@ -357,6 +451,15 @@ export class BusquedaCitas extends BaseComponent {
     }
   }
 
+  /**
+   * Valida los filtros seleccionados en el formulario y ejecuta el flujo de búsqueda:
+   * 1. Busca el documento del paciente para obtener su `idPersona`.
+   * 2. Obtiene los registros `persona-rol` asociados a la persona y filtrados por la clínica seleccionada.
+   * 3. Consulta las citas médicas (`consulta`) de cada rol válido y aplica el filtro por rango de fechas.
+   * 4. Renderiza las tarjetas resultantes en pantalla.
+   *
+   * @returns {Promise<void>}
+   */
   async buscar() {
     const numeroDocumento = this.#inputNumDoc.value.trim();
 
@@ -489,9 +592,10 @@ export class BusquedaCitas extends BaseComponent {
   }
 
   /**
-   * Renderiza las tarjetas de consulta en el grid de resultados.
+   * Renderiza las tarjetas de consulta (`<tarjeta-cita>`) en el grid de resultados.
+   * Si la lista está vacía, limpia el grid y muestra un mensaje informativo.
    *
-   * @param {Array} consultas
+   * @param {Array<Consulta>} [consultas=[]] - Lista de entidades `Consulta` a mostrar.
    */
   mostrarResultados(consultas = []) {
     if (!Array.isArray(consultas) || consultas.length === 0) {
@@ -516,7 +620,11 @@ export class BusquedaCitas extends BaseComponent {
   }
 
   /**
-   * Nombre de la clínica de una consulta.
+   * Resuelve el nombre legible de la clínica asociada a una consulta, buscando
+   * en las entidades anidadas, en el mapa en caché o en la clínica seleccionada en el filtro.
+   *
+   * @param {Consulta|Object} consulta - Objeto o entidad de consulta médica.
+   * @returns {string} Nombre de la clínica o cadena vacía si no se encuentra.
    */
   #nombreClinicaDe(consulta) {
     const rol = consulta?.idPersonaRol;
@@ -536,12 +644,21 @@ export class BusquedaCitas extends BaseComponent {
     );
   }
 
+  /**
+   * Muestra un mensaje informativo o de error en la barra de estado del componente.
+   *
+   * @param {string} mensaje - Texto a mostrar al usuario.
+   * @param {boolean} [esError=false] - Indica si el mensaje debe estilizarse como error.
+   */
   #mostrarEstado(mensaje, esError = false) {
     this.#estadoEl.textContent = mensaje;
     this.#estadoEl.classList.toggle("error", esError);
     this.#estadoEl.hidden = false;
   }
 
+  /**
+   * Oculta y limpia el mensaje de la barra de estado del componente.
+   */
   #ocultarEstado() {
     this.#estadoEl.textContent = "";
     this.#estadoEl.classList.remove("error");

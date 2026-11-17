@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Clase base de servicios REST del sistema GalenoSV (`DefaultService`).
+ * Estandariza las operaciones HTTP (`create`, `findRange`, `findAll`, `findById`, `update`, `delete`),
+ * la deserialización opcional mediante `EntityClass.fromJSON` y el encapsulamiento uniforme
+ * de errores de red o respuestas HTTP en instancias de `DefaultError`
+ */
+
 import DefaultError from "../entity/default_error.js";
 import DefaultResponse from "../entity/default_response.js";
 
@@ -6,16 +13,25 @@ import DefaultResponse from "../entity/default_response.js";
  * findById y delete son los mismos de la versión anterior.
  */
 class DefaultService {
+  /**
+   * Inicializa la URL base del servidor REST de GalenoSV y establece
+   * `EntityClass` en `null` por defecto
+   */
   constructor() {
     this._BASE_URL =
       "http://localhost:9080/GalenoSV-1.0-SNAPSHOT/resources/v1/";
     this.URL = this._BASE_URL;
-
-    // Cada service hijo asigna aquí la clase de su entity (con fromJSON).
-    // Si queda en null, findRange y findById devuelven el JSON sin convertir.
     this.EntityClass = null;
   }
 
+  /**
+   * Envía una petición `POST` para crear un nuevo registro en `this.URL` y extrae
+   * el identificador generado desde el último segmento del encabezado `Location` (HTTP 201)
+   *
+   * @param {Object} entidad - Objeto o entidad serializable a JSON a persistir
+   * @returns {Promise<string>} Identificador del nuevo recurso extraído de `Location`
+   * @throws {DefaultError} Si el servidor responde con un estado distinto de 201 o falla la conexión
+   */
   create(entidad) {
     let errorSalida = new DefaultError();
     let salida = new Promise((exito, rechazo) => {
@@ -42,6 +58,16 @@ class DefaultService {
     return salida;
   }
 
+  /**
+   * Obtiene una página de registros mediante `GET` enviando los parámetros de paginación
+   * (`first`, `primero` y `max`), deserializa cada elemento con `EntityClass.fromJSON` si está
+   * definida y extrae `Total-registros` de los encabezados HTTP
+   *
+   * @param {number} first - Índice inicial (base 0) del primer registro a recuperar
+   * @param {number} max - Cantidad máxima de registros solicitados en la página
+   * @returns {Promise<DefaultResponse>} Objeto con `registros` y `totalRegistros` (`number|null`)
+   * @throws {DefaultError} Si el servidor responde con error HTTP, falla el parseo JSON o hay error de red
+   */
   findRange(first, max) {
     let errorSalida = new DefaultError();
     let salida = new Promise((exito, rechazo) => {
@@ -89,10 +115,13 @@ class DefaultService {
   }
 
   /**
-   * NUEVO. Recorre todas las páginas de findRange y devuelve el arreglo
+   * NUEVO. Recorre todas las páginas de `findRange` y devuelve el arreglo
    * completo de registros. El backend no filtra por relación, así que es la
    * forma de obtener "las órdenes de este paso": se trae todo y se filtra en
-   * el cliente. Cuesta una petición por cada `max` registros.
+   * el cliente. Cuesta una petición por cada `max` registros
+   *
+   * @param {number} [max=50] - Tamaño de lote utilizado en cada llamada sucesiva a `findRange`
+   * @returns {Promise<Array<*>>} Arreglo acumulado con todos los registros disponibles del recurso
    */
   findAll(max = 50) {
     return new Promise((exito, rechazo) => {
@@ -119,6 +148,14 @@ class DefaultService {
     });
   }
 
+  /**
+   * Recupera un registro individual por su identificador (`uuid`) mediante `GET {this.URL}/{uuid}`
+   * y lo convierte con `EntityClass.fromJSON` si está configurada
+   *
+   * @param {string|number} uuid - Identificador único del recurso a consultar
+   * @returns {Promise<*>} Entidad deserializada o el objeto JSON crudo si `EntityClass` es `null`
+   * @throws {DefaultError} Si el estado HTTP no es 200, falla el parseo JSON o ocurre un error de red
+   */
   findById(uuid) {
     let errorSalida = new DefaultError();
     let salida = new Promise((exito, rechazo) => {
@@ -151,8 +188,14 @@ class DefaultService {
   }
 
   /**
-   * NUEVO. PUT a /{uuid} con la entidad completa. Se asume que el backend
-   * responde 200 o 204 (aún por definir).
+   * NUEVO. `PUT` a `/{uuid}` con la entidad completa. Se asume que el backend
+   * responde 200 o 204 (aún por definir)[cite: 17]. Si devuelve 409 (conflicto),
+   * propaga el cuerpo textual de la respuesta en `DefaultError.mensaje`
+   *
+   * @param {string|number} uuid - Identificador único del recurso a actualizar
+   * @param {Object} entidad - Representación completa de la entidad a enviar en el cuerpo JSON
+   * @returns {Promise<boolean>} `true` cuando la actualización concluye con estado 200 o 204
+   * @throws {DefaultError} Si ocurre un conflicto (409), otro error HTTP o fallo de red
    */
   update(uuid, entidad) {
     let errorSalida = new DefaultError();
@@ -193,6 +236,14 @@ class DefaultService {
     return salida;
   }
 
+  /**
+   * Elimina un registro existente mediante `DELETE {this.URL}/{uuid}`
+   * Resuelve con `true` ante HTTP 204 y propaga el mensaje del servidor ante conflictos HTTP 409
+   *
+   * @param {string|number} uuid - Identificador único del recurso a eliminar
+   * @returns {Promise<boolean>} `true` si el recurso fue eliminado exitosamente (HTTP 204)
+   * @throws {DefaultError} Si hay conflicto de integridad (409), error HTTP o fallo de conexión
+   */
   delete(uuid) {
     let errorSalida = new DefaultError();
     let salida = new Promise((exito, rechazo) => {

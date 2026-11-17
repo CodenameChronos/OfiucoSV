@@ -1,10 +1,30 @@
+/**
+ * @fileoverview Servicio de agregación y consulta para el tablero principal (`DashboardService`).
+ * Coordina llamadas a múltiples servicios REST (`PersonaService`, `PersonaRolService`,
+ * `ConsultaService`, `ConsultaProcedimientoService` y `ConsultaProcedimientoPasoService`)
+ * para resolver las consultas médicas y procedimientos cuyos pasos están asignados a una
+ * relación `persona_rol` específica, filtrando además por rango de fechas local.
+ */
+
 import ConsultaService from "./consulta_service.js";
 import ConsultaProcedimientoService from "./consultaProcedimiento_service.js";
 import ConsultaProcedimientoPasoService from "./consultaProcedimientoPaso_service.js";
 import PersonaService from "./persona_service.js";
 import PersonaRolService from "./personaRol_service.js";
 
+/**
+ * Servicio de control encargado de consolidar la vista de consultas asignadas al
+ * personal clínico para el dashboard principal.
+ */
 export default class DashboardService {
+  /**
+   * Extrae el identificador de un valor que puede venir como cadena directa (UUID/ID)
+   * o como un objeto anidado que contiene la clave indicada en `propiedad`.
+   *
+   * @param {string|Object|null|undefined} valor - Identificador crudo o entidad anidada.
+   * @param {string} propiedad - Nombre de la propiedad clave dentro del objeto (ej. `"idPersona"`).
+   * @returns {string|null} Identificador extraído o `null` si no existe.
+   */
   obtenerId(valor, propiedad) {
     if (!valor) return null;
 
@@ -15,6 +35,13 @@ export default class DashboardService {
     return valor[propiedad] ?? null;
   }
 
+  /**
+   * Normaliza una fecha proveniente del API (eliminando el sufijo opcional `[UTC]`)
+   * y la convierte en una instancia válida de `Date`.
+   *
+   * @param {string|number|Date|null|undefined} valor - Valor temporal a parsear.
+   * @returns {Date|null} Objeto `Date` válido o `null` si la entrada está vacía o no es parseable.
+   */
   convertirFecha(valor) {
     if (!valor) return null;
 
@@ -24,6 +51,12 @@ export default class DashboardService {
     return Number.isNaN(fecha.getTime()) ? null : fecha;
   }
 
+  /**
+   * Recupera todas las personas registradas y consulta en paralelo sus asignaciones
+   * `persona_rol`, enriqueciendo cada registro de rol con los datos básicos de la persona.
+   *
+   * @returns {Promise<Array<Object>>} Lista plana de registros `persona_rol` enriquecidos con `{ persona }`.
+   */
   async obtenerRolesPersonas() {
     const personas = await new PersonaService().findAll();
 
@@ -49,6 +82,19 @@ export default class DashboardService {
     return rolesPorPersona.flat();
   }
 
+  /**
+   * Obtiene las consultas médicas que contienen al menos un procedimiento con pasos
+   * asignados al empleado (`idPersonaRol`), aplicando opcionalmente filtros por fecha
+   * de inicio (`desde` y `hasta` en formato `YYYY-MM-DD`) y resolviendo los datos del
+   * paciente asociado a cada consulta.
+   *
+   * @param {string|Object} idPersonaRol - Identificador o entidad `persona_rol` del empleado autenticado.
+   * @param {Object} [filtros={}] - Criterios opcionales de filtrado temporal.
+   * @param {string} [filtros.desde=""] - Fecha mínima inclusiva en formato `YYYY-MM-DD`.
+   * @param {string} [filtros.hasta=""] - Fecha máxima inclusiva en formato `YYYY-MM-DD`.
+   * @returns {Promise<Array<Object>>} Lista de consultas únicas enriquecidas con `paciente` y `procedimientos` filtrados por asignación.
+   * @throws {TypeError} Si `idPersonaRol` no es proporcionado.
+   */
   async obtenerConsultas(idPersonaRol, filtros = {}) {
     if (!idPersonaRol) {
       throw new TypeError("La asignación de empleado es obligatoria.");
@@ -157,6 +203,14 @@ export default class DashboardService {
     );
   }
 
+  /**
+   * Consulta el detalle completo de un paso específico perteneciente a un procedimiento de consulta.
+   *
+   * @param {string} idConsultaProcedimiento - UUID del procedimiento de consulta padre.
+   * @param {string} idPaso - UUID del paso dentro del procedimiento.
+   * @returns {Promise<Object>} Instancia o registro detallando el paso clínico solicitado.
+   * @throws {TypeError} Si `idConsultaProcedimiento` o `idPaso` son nulos o vacíos.
+   */
   async obtenerDetallePaso(idConsultaProcedimiento, idPaso) {
     if (!idConsultaProcedimiento || !idPaso) {
       throw new TypeError("Se requiere el procedimiento y el paso.");
@@ -167,6 +221,13 @@ export default class DashboardService {
     ).findById(idPaso);
   }
 
+  /**
+   * Formatea una instancia de `Date` utilizando la zona horaria local en formato
+   * ISO de solo fecha (`YYYY-MM-DD`).
+   *
+   * @param {Date} fecha - Fecha local a formatear.
+   * @returns {string} Cadena de fecha en formato `YYYY-MM-DD`.
+   */
   fechaLocalISO(fecha) {
     const anio = fecha.getFullYear();
     const mes = String(fecha.getMonth() + 1).padStart(2, "0");

@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Web Component `<ofiuco-dashboard>` que implementa la vista principal
+ * del área de trabajo médico (`GalenoSV · Área de trabajo`). Permite gestionar
+ * las asignaciones clínica-rol del empleado autenticado, filtrar consultas por
+ * rango de fechas y texto de búsqueda, visualizar columnas paginadas de consultas
+ * pendientes y finalizadas, consultar resúmenes modales y seleccionar consultas
+ * para atención clínica.
+ */
+
 import { BaseComponent } from "../core/base-component.js";
 import { defineOnce } from "../core/define-once.js";
 import { h } from "../core/dom.js";
@@ -9,12 +18,43 @@ import "./layout/consulta_card.js";
 import "./layout/consulta_resumen.js";
 import "./layout/ofiuco-dialog.js";
 
+/**
+ * Construye la URL absoluta de una hoja de estilos ubicada en `resources/styles/components/`.
+ *
+ * @param {string} name - Nombre del archivo CSS.
+ * @returns {string} URL resuelta de la hoja de estilos.
+ */
 const styleUrl = (name) =>
   new URL(`../../../resources/styles/components/${name}`, import.meta.url).href;
 
+/**
+ * Componente web `<ofiuco-dashboard>`.
+ *
+ * Panel principal de gestión de consultas médicas asignadas al personal autenticado.
+ * Organiza las consultas en dos columnas independientes con paginación (`Pendientes`
+ * y `Finalizadas`), integra filtros por asignación, fechas (`<ofiuco-date-picker>`)
+ * y búsqueda local por paciente o referencia, y coordina el diálogo modal de resumen
+ * (`<ofiuco-dialog>` + `<ofiuco-consulta-resumen>`).
+ *
+ * Eventos emitidos (`bubbles: true`, `composed: true`):
+ * - `logout-requested`: Al hacer clic en el botón `"Cerrar sesión"`.
+ * - `consulta-selected`: Al seleccionar una consulta para atención (`detail: { consulta, asignacion }`).
+ *
+ * @extends BaseComponent
+ * @fires CustomEvent#logout-requested
+ * @fires CustomEvent#consulta-selected
+ */
 export class OfiucoDashboard extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [styleUrl("button.css"), styleUrl("dashboard.css")];
 
+  /**
+   * Inicializa el servicio de datos `DashboardService`, el estado de sesión/asignaciones,
+   * los arreglos de consultas y los parámetros de paginación para columnas pendientes y finalizadas.
+   */
   constructor() {
     super();
     this.service = new DashboardService();
@@ -23,20 +63,21 @@ export class OfiucoDashboard extends BaseComponent {
     this.seleccion = null;
     this.consultas = [];
     this.filteredConsultas = [];
-
     this.loadSequence = 0;
-
-    // Paginación de consultas pendientes
     this.pendingPage = 0;
     this.pendingPageSize = 2;
     this.pendingConsultas = [];
-
-    // Paginación de consultas finalizadas
     this.completedPage = 0;
     this.completedPageSize = 2;
     this.completedConsultas = [];
   }
 
+  /**
+   * Construye toda la estructura DOM del dashboard dentro del Shadow DOM:
+   * cabecera con perfil y cierre de sesión, panel de filtros, barra de resumen,
+   * columnas paginadas (`Pendientes` y `Finalizadas`), contenedor modal `#dialog-root`
+   * y enlaza todos los escuchadores de eventos de interfaz y componentes hijos.
+   */
   render() {
     // Los filtros de fecha empiezan en el día de hoy (fecha local).
     const today = this.service.fechaLocalISO(new Date());
@@ -131,6 +172,13 @@ export class OfiucoDashboard extends BaseComponent {
     });
   }
 
+  /**
+   * Configura los datos de sesión del empleado y sus asignaciones clínica-rol.
+   * Si el componente ya está renderizado, actualiza el perfil, las opciones del selector
+   * y dispara la carga inicial de consultas.
+   *
+   * @param {{ persona?: Object|null, asignaciones?: Array<Object> }|null|undefined} data - Datos de sesión activa.
+   */
   setSession(data) {
     this.user = data?.persona ?? null;
     this.asignaciones = Array.isArray(data?.asignaciones) ? data.asignaciones : [];
@@ -141,6 +189,11 @@ export class OfiucoDashboard extends BaseComponent {
     }
   }
 
+  /**
+   * Ciclo de vida ejecutado al conectar el componente al DOM.
+   * Si ya existen datos de usuario o asignaciones cargados previamente, pinta la cabecera
+   * y consulta las citas asignadas.
+   */
   onConnect() {
     if (this.user || this.asignaciones.length) {
       this.paintProfile();
@@ -149,6 +202,10 @@ export class OfiucoDashboard extends BaseComponent {
     }
   }
 
+  /**
+   * Renderiza en `#profile` el nombre completo del empleado y los badges iniciales
+   * de rol y clínica pendientes de selección.
+   */
   paintProfile() {
     const profile = this.shadowRoot.querySelector("#profile");
     if (!profile) return;
@@ -160,6 +217,10 @@ export class OfiucoDashboard extends BaseComponent {
     );
   }
 
+  /**
+   * Puebla el `<select id="asignacion">` con las combinaciones `Clínica — Rol`
+   * disponibles para el usuario, selecciona la primera por defecto y actualiza el perfil.
+   */
   paintAssignments() {
     const select = this.shadowRoot.querySelector("#asignacion");
     if (!select) return;
@@ -170,6 +231,10 @@ export class OfiucoDashboard extends BaseComponent {
     this.updateSelectedProfile();
   }
 
+  /**
+   * Sincroniza `this.seleccion` con la opción elegida en `#asignacion` y actualiza
+   * los chips visuales `#profile-role` y `#profile-clinic` en la cabecera.
+   */
   updateSelectedProfile() {
     const select = this.shadowRoot.querySelector("#asignacion");
     const assignment = this.asignaciones[Number(select?.value ?? 0)] ?? null;
@@ -180,6 +245,10 @@ export class OfiucoDashboard extends BaseComponent {
     if (clinic) clinic.textContent = relationName(assignment?.idClinica, "Clínica no disponible");
   }
 
+  /**
+   * Restablece los filtros de fecha al día local actual, limpia el campo de búsqueda
+   * de paciente/referencia y vuelve a cargar las consultas.
+   */
   limpiarFiltros() {
     // "Limpiar" vuelve al estado inicial: fechas en el día de hoy.
     const today = this.service.fechaLocalISO(new Date());
@@ -189,14 +258,30 @@ export class OfiucoDashboard extends BaseComponent {
     this.cargar();
   }
 
+  /**
+   * Crea un nodo `<div class="empty">` con un mensaje informativo de estado vacío.
+   *
+   * @param {string} message - Texto a mostrar cuando no hay elementos en una columna.
+   * @returns {HTMLDivElement}
+   */
   empty(message) {
     return h("div", { class: "empty" }, message);
   }
 
+  /**
+   * Reemplaza el contenido de un contenedor con el bloque de estado vacío generado por `empty()`.
+   *
+   * @param {HTMLElement} container - Contenedor DOM destino.
+   * @param {string} message - Mensaje informativo de estado vacío.
+   */
   showEmpty(container, message) {
     container.replaceChildren(this.empty(message));
   }
 
+  /**
+   * Reinicia a cero los índices de página, los arreglos paginados y los totales de ambos
+   * componentes `<ofiuco-pagination>`.
+   */
   resetPagination() {
     this.pendingPage = 0;
     this.completedPage = 0;
@@ -206,6 +291,13 @@ export class OfiucoDashboard extends BaseComponent {
     this.shadowRoot.querySelector("#completed-pagination").total = 0;
   }
 
+  /**
+   * Consulta de forma asíncrona las consultas médicas asignadas al `idPersonaRol` activo
+   * dentro del rango de fechas (`#desde` a `#hasta`), gestionando validaciones de fechas,
+   * control de concurrencia mediante `loadSequence`, estados de carga y manejo de errores.
+   *
+   * @returns {Promise<void>}
+   */
   async cargar() {
     const sequence = ++this.loadSequence;
     this.updateSelectedProfile();
@@ -259,6 +351,12 @@ export class OfiucoDashboard extends BaseComponent {
     }
   }
 
+  /**
+   * Filtra en memoria `this.consultas` según el texto ingresado en `#buscarPaciente`
+   * (coincidencia por nombre de paciente, `referenciaExterna` o `idConsulta`), divide
+   * los resultados en `pendingConsultas` (sin `fechaFin`) y `completedConsultas` (con `fechaFin`),
+   * reinicia la paginación y actualiza las tarjetas y contadores.
+   */
   aplicarFiltroLocal() {
     const query = this.shadowRoot.querySelector("#buscarPaciente").value.trim().toLocaleLowerCase();
 
@@ -290,6 +388,10 @@ export class OfiucoDashboard extends BaseComponent {
     this.shadowRoot.querySelector("#completed-count").textContent = String(this.completedConsultas.length);
   }
 
+  /**
+   * Renderiza la página actual de la columna de consultas pendientes y actualiza
+   * `this.pendingPage` con el índice efectivo resultante.
+   */
   renderPendingPage() {
     this.pendingPage = this.paintColumn({
       cards: this.shadowRoot.querySelector("#pendientes"),
@@ -301,6 +403,10 @@ export class OfiucoDashboard extends BaseComponent {
     });
   }
 
+  /**
+   * Renderiza la página actual de la columna de consultas finalizadas y actualiza
+   * `this.completedPage` con el índice efectivo resultante.
+   */
   renderCompletedPage() {
     this.completedPage = this.paintColumn({
       cards: this.shadowRoot.querySelector("#finalizadas"),
@@ -312,7 +418,19 @@ export class OfiucoDashboard extends BaseComponent {
     });
   }
 
-  /** Pinta una página de tarjetas y sincroniza su paginador. Devuelve la página efectiva. */
+  /**
+   * Pinta una página de tarjetas en el contenedor indicado y sincroniza el estado
+   * de su componente `<ofiuco-pagination>` asociado.
+   *
+   * @param {Object} params - Parámetros de renderizado de la columna.
+   * @param {HTMLElement} params.cards - Contenedor donde se insertarán las tarjetas.
+   * @param {HTMLElement} params.pagination - Instancia de `<ofiuco-pagination>` de la columna.
+   * @param {Array<Object>} params.items - Colección completa de consultas de la columna.
+   * @param {number} params.page - Índice de página solicitada (base 0).
+   * @param {number} params.pageSize - Cantidad máxima de elementos por página.
+   * @param {string} params.emptyMessage - Mensaje a mostrar si `items` está vacío.
+   * @returns {number} Índice de página efectiva aplicada tras acotar al rango válido.
+   */
   paintColumn({ cards, pagination, items, page, pageSize, emptyMessage }) {
     if (!cards || !pagination) return page;
 
@@ -331,12 +449,24 @@ export class OfiucoDashboard extends BaseComponent {
     return current;
   }
 
+  /**
+   * Instancia y configura un componente `<ofiuco-consulta-card>` para una consulta dada.
+   *
+   * @param {Object} consulta - Datos de la consulta médica.
+   * @returns {HTMLElement} Elemento `<ofiuco-consulta-card>` configurado.
+   */
   card(consulta) {
     const card = h("ofiuco-consulta-card");
     card.consulta = consulta;
     return card;
   }
 
+  /**
+   * Despacha el evento `consulta-selected` hacia el exterior cuando el usuario
+   * elige atender una consulta, adjuntando la consulta y la asignación activa.
+   *
+   * @param {Object|null|undefined} consulta - Consulta médica seleccionada.
+   */
   atender(consulta) {
     if (!consulta) return;
     this.dispatchEvent(new CustomEvent("consulta-selected", {
@@ -344,6 +474,12 @@ export class OfiucoDashboard extends BaseComponent {
     }));
   }
 
+  /**
+   * Abre un diálogo modal `<ofiuco-dialog>` dentro de `#dialog-root` mostrando el
+   * detalle completo de la consulta mediante `<ofiuco-consulta-resumen>`.
+   *
+   * @param {Object|null|undefined} consulta - Consulta médica cuyo resumen se desea inspeccionar.
+   */
   mostrarResumen(consulta) {
     if (!consulta) return;
     const root = this.shadowRoot.querySelector("#dialog-root");

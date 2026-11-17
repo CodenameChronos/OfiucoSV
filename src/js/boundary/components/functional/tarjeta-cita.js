@@ -1,14 +1,33 @@
+/**
+ * @fileoverview Web Component `<tarjeta-cita>` encargado de renderizar la tarjeta
+ * resumen de una consulta o cita médica dentro de la vista de búsqueda (HU1).
+ * Presenta la fecha y hora formateadas, el nombre de la clínica, el listado de
+ * procedimientos/pasos asociados y un botón de acción para solicitar la descarga
+ * del ticket PDF mediante el evento personalizado `descargar-ticket`.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 
 /**
- * <tarjeta-cita>
+ * Componente web `<tarjeta-cita>`.
+ *
  * Tarjeta de consulta/cita médica para la vista de búsqueda de paciente (HU1).
- * Muestra fecha (dd/MM/yyyy), hora (hh:mm AM/PM), clínica, procedimientos
- * parseados del campo Observaciones y botón de acción para el ticket.
+ * Muestra fecha (`dd/MM/yyyy`), hora (`hh:mm AM/PM`), clínica, procedimientos
+ * parseados del campo Observaciones (`consulta.pasos`) y botón de acción para el ticket.
+ *
+ * Emite el evento `descargar-ticket` (`bubbles: true`, `composed: true`) con
+ * `detail: { consulta }` al pulsar el botón `"Ticket"`.
+ *
+ * @extends BaseComponent
+ * @fires CustomEvent#descargar-ticket
  */
 export class TarjetaCita extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/tarjeta_cita.css",
@@ -41,6 +60,11 @@ export class TarjetaCita extends BaseComponent {
     if (this.rendered) this.#pintar();
   }
 
+  /**
+   * Construye la estructura DOM de la tarjeta dentro del Shadow DOM (`<article>`,
+   * encabezado con fecha/hora, cuerpo con clínica/procedimientos y pie con el botón de ticket)
+   * y enlaza el evento de clic para emitir `descargar-ticket`.
+   */
   render() {
     this.#fechaEl = h("span", { class: "cita-fecha" });
     this.#horaEl = h("span", { class: "cita-hora" });
@@ -86,6 +110,11 @@ export class TarjetaCita extends BaseComponent {
     this.#pintar();
   }
 
+  /**
+   * Actualiza los elementos internos de la tarjeta con los datos de `#consulta` y
+   * `#clinicaNombre`, formateando fecha y hora y renderizando los pasos/procedimientos
+   * o el mensaje `"Sin procedimientos registrados"` si no existen.
+   */
   #pintar() {
     const c = this.#consulta;
     if (!c) return;
@@ -131,6 +160,13 @@ export class TarjetaCita extends BaseComponent {
     this.#procedimientosEl.replaceChildren(lista);
   }
 
+  /**
+   * Formatea una instancia válida de `Date` en el patrón `dd/MM/yyyy`.
+   * Devuelve `"--/--/----"` si la fecha no es una instancia válida de `Date`.
+   *
+   * @param {Date|*} fecha - Objeto `Date` a formatear.
+   * @returns {string} Fecha formateada (`dd/MM/yyyy`) o marcador por defecto.
+   */
   static formatearFecha(fecha) {
     if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime())) {
       return "--/--/----";
@@ -141,6 +177,13 @@ export class TarjetaCita extends BaseComponent {
     return `${dia}/${mes}/${anio}`;
   }
 
+  /**
+   * Formatea una instancia válida de `Date` en reloj de 12 horas (`hh:mm AM/PM`).
+   * Devuelve `"--:--"` si la fecha no es una instancia válida de `Date`.
+   *
+   * @param {Date|*} fecha - Objeto `Date` a formatear.
+   * @returns {string} Hora formateada (`hh:mm AM/PM`) o marcador por defecto.
+   */
   static formatearHora(fecha) {
     if (!(fecha instanceof Date) || Number.isNaN(fecha.getTime())) {
       return "--:--";

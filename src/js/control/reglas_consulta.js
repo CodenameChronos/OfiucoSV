@@ -1,32 +1,54 @@
 /**
- * @file Reglas de la pantalla de atención (HU4), como funciones puras.
- * Trabajan con formas simples ({id, ...}) y no con las entities: el service
- * es quien convierte las entities (con sus relaciones anidadas) a estas
- * formas, de modo que estas reglas no dependen del JSON del backend.
+ * @fileoverview Reglas de negocio de la pantalla de atención clínica (HU4), implementadas
+ * como funciones puras. Operan sobre estructuras normalizadas y planas (`{ id, ... }`)
+ * desacopladas de las entidades ORM/JSON del backend, dejando que la capa de servicio
+ * realice la proyección previa.
  */
 import { leerIds, escribirIds } from "./indicaciones_service.js";
 import { Estado, parsearEstado } from "./estado_paso.js";
 
-/** Normaliza un id para compararlo (minúsculas, nunca null). */
+/**
+ * Normaliza un identificador a cadena en minúsculas para comparaciones seguras (nunca `null`).
+ *
+ * @param {string|number|null|undefined} id - Identificador a normalizar.
+ * @returns {string} Representación en minúsculas o cadena vacía si es nulo/indefinido.
+ */
 export const clave = (id) => String(id ?? "").toLowerCase();
 
+/**
+ * Verifica que un valor sea una cadena de texto no vacía tras recortar espacios.
+ *
+ * @param {*} valor - Valor a evaluar.
+ * @returns {boolean} `true` si es un `string` con contenido visible.
+ */
 const texto = (valor) => typeof valor === "string" && valor.trim() !== "";
+
+/**
+ * Convierte un valor nulo o indefinido en cadena vacía sin alterar cadenas existentes.
+ *
+ * @param {*} v - Valor de entrada.
+ * @returns {string} Cadena resultante.
+ */
 const textoOGenerico = (v) => String(v ?? "");
 
 /**
- * UUID de los exámenes que ya tienen orden en este paso.
- * @param {{indicaciones: string|null}[]} ordenes órdenes del paso actual
- * @returns {string[]}
+ * Extrae los UUID de `procedimiento_paso_examen` de los exámenes que ya cuentan
+ * con una orden registrada en el paso actual.
+ *
+ * @param {Array<{ indicaciones: string|null }>} ordenes - Órdenes de examen del paso actual.
+ * @returns {string[]} Lista de UUIDs extraídos de las indicaciones de las órdenes.
  */
 export function idsOrdenados(ordenes) {
   return leerIds((ordenes || []).map((o) => o?.indicaciones ?? "").join("\n"));
 }
 
 /**
- * De los exámenes marcados por el médico, los que todavía no tienen orden.
- * @param {string[]} seleccionados UUID de procedimiento_paso_examen marcados
- * @param {{indicaciones: string|null}[]} ordenes órdenes ya existentes del paso
- * @returns {string[]}
+ * Filtra los exámenes seleccionados por el médico para obtener únicamente aquellos
+ * que aún no poseen una orden de examen emitida en el paso.
+ *
+ * @param {string[]} seleccionados - UUIDs de `procedimiento_paso_examen` marcados.
+ * @param {Array<{ indicaciones: string|null }>} ordenes - Órdenes ya existentes en el paso.
+ * @returns {string[]} UUIDs de exámenes pendientes de ordenar.
  */
 export function examenesPorOrdenar(seleccionados, ordenes) {
   const yaOrdenados = new Set(idsOrdenados(ordenes));
@@ -36,10 +58,11 @@ export function examenesPorOrdenar(seleccionados, ordenes) {
 }
 
 /**
- * Órdenes que no tienen ningún resultado con texto.
- * @param {{id: string}[]} ordenes
- * @param {{idOrden: string, resultado: string|null}[]} resultados
- * @returns {string[]} ids de las órdenes sin resultado
+ * Identifica las órdenes de examen que aún no tienen ningún resultado con texto registrado.
+ *
+ * @param {Array<{ id: string }>} ordenes - Lista de órdenes de examen vigentes.
+ * @param {Array<{ idOrden: string, resultado: string|null }>} resultados - Resultados registrados asociados a órdenes.
+ * @returns {string[]} Arreglo con los `id` de las órdenes sin resultado textual.
  */
 export function ordenesSinResultado(ordenes, resultados) {
   const conResultado = new Set(
@@ -53,11 +76,12 @@ export function ordenesSinResultado(ordenes, resultados) {
 }
 
 /**
- * Planifica qué exámenes crear y cuáles quitar comparando la selección del borrador
- * con las órdenes existentes del paso.
- * @param {string[]} seleccionadosBorrador IDs de PPE seleccionados en el borrador.
- * @param {{id: string, indicaciones: string|null, tieneResultado: boolean}[]} ordenesExistentes
- * @returns {{crear: string[], quitar: {idOrden: string, idPpe: string, tieneResultado: boolean}[]}}
+ * Planifica qué órdenes de examen deben crearse y cuáles deben eliminarse comparando
+ * la selección actual del borrador contra las órdenes previamente persistidas en el paso.
+ *
+ * @param {string[]} seleccionadosBorrador - IDs de `procedimiento_paso_examen` seleccionados en el borrador.
+ * @param {Array<{ id: string, indicaciones: string|null, tieneResultado: boolean }>} ordenesExistentes - Órdenes ya guardadas en el backend.
+ * @returns {{ crear: string[], quitar: Array<{ idOrden: string, idPpe: string, tieneResultado: boolean, indicaciones: string|null }> }} Plan de sincronización de órdenes.
  */
 export function planificarSeleccion(seleccionadosBorrador, ordenesExistentes) {
   const seleccionadosSet = new Set((seleccionadosBorrador || []).map(clave));
@@ -90,11 +114,12 @@ export function planificarSeleccion(seleccionadosBorrador, ordenesExistentes) {
 }
 
 /**
- * Detecta qué resultados deben crearse o actualizarse comparando las órdenes vigentes
- * con los resultados actuales del borrador.
- * @param {{idOrden: string, idPpe: string, resultado: {id: string, resultado: string, interpretacion: string}|null}[]} vigentes
- * @param {Record<string, {resultado?: string, interpretacion?: string}>} resultadosBorrador
- * @returns {{crear: {idOrden: string, resultado: string, interpretacion: string}[], actualizar: {idOrden: string, resultado: string, interpretacion: string}[]}}
+ * Detecta qué registros de resultados deben crearse o actualizarse comparando las órdenes
+ * vigentes con los valores ingresados en el borrador del formulario.
+ *
+ * @param {Array<{ idOrden: string, idPpe: string, resultado: { id: string, resultado: string, interpretacion: string }|null }>} vigentes - Órdenes activas tras aplicar cambios de selección.
+ * @param {Record<string, { resultado?: string, interpretacion?: string }>} resultadosBorrador - Mapa indexado por `idPpe` con los valores editados en UI.
+ * @returns {{ crear: Array<{ idOrden: string, resultado: string, interpretacion: string }>, actualizar: Array<{ idOrden: string, resultado: string, interpretacion: string }> }} Operaciones de creación y actualización requeridas.
  */
 export function cambiosDeResultados(vigentes, resultadosBorrador) {
   const crear = [];
@@ -133,9 +158,11 @@ export function cambiosDeResultados(vigentes, resultadosBorrador) {
 }
 
 /**
- * Texto del aviso cuando se quitan exámenes (soporta tanto números como arrays de nombres).
- * @param {number|string[]} cantidad número o lista de exámenes quitados
- * @returns {string|null}
+ * Genera el texto del aviso informativo cuando se desmarcan exámenes de una orden
+ * (soporta tanto una cantidad numérica como un arreglo de nombres/elementos).
+ *
+ * @param {number|string[]} cantidad - Número entero o lista de exámenes quitados.
+ * @returns {string|null} Mensaje formateado en singular/plural o `null` si no hubo elementos quitados.
  */
 export function mensajeExamenesQuitados(cantidad) {
   if (Array.isArray(cantidad)) {
@@ -150,9 +177,11 @@ export function mensajeExamenesQuitados(cantidad) {
 }
 
 /**
- * Texto del aviso de confirmación de resultados pendientes.
- * @param {number} cantidad
- * @returns {string|null}
+ * Genera el mensaje de advertencia para confirmar el avance o cierre cuando existen
+ * órdenes de examen sin resultados capturados.
+ *
+ * @param {number} cantidad - Cantidad de exámenes pendientes de resultado.
+ * @returns {string|null} Mensaje de confirmación o `null` si `cantidad` no es un entero positivo.
  */
 export function mensajeResultadosPendientes(cantidad) {
   if (!Number.isInteger(cantidad) || cantidad <= 0) return null;

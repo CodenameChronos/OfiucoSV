@@ -1,19 +1,40 @@
+/**
+ * @fileoverview Web Component `<ofiuco-tarjeta-consulta>` que extiende `TarjetaSimple`
+ * para representar una tarjeta detallada de consulta médica. Proyecta en los slots
+ * de `TarjetaSimple` (`entity-id`, `side-info`, `body` y `footer`) los datos del
+ * paciente, la fecha y referencia de la consulta, el historial de pasos previos
+ * mediante `<ofiuco-resume-element>` y el botón para iniciar la atención.
+ */
+
 import TarjetaSimple from "./tarjeta_simple.js";
 import Consulta from "../../../entity/consulta.js";
 import "./resume_element.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 
+/** @type {string} URL resuelta de la hoja de estilos específica para `TarjetaConsulta`. */
 const stylesUrl = new URL(
   "../../../../resources/styles/components/tarjeta_consulta.css",
   import.meta.url,
 ).href;
 
+/**
+ * Componente web `<ofiuco-tarjeta-consulta>`.
+ *
+ * Extiende `TarjetaSimple` inyectando su hoja de estilos en `this.root` y poblando
+ * los slots de la tarjeta base con la información del paciente, los metadatos de la
+ * consulta, la lista de pasos ejecutados y el botón `"Atender Consulta"`.
+ *
+ * Al pulsar el botón de atención, emite el evento `ofiuco:consulta-select`
+ * (`bubbles: true`, `composed: true`) con `detail: { consulta, paciente, pasos }`.
+ *
+ * @extends TarjetaSimple
+ * @fires CustomEvent#ofiuco:consulta-select
+ */
 export class TarjetaConsulta extends TarjetaSimple {
   #consulta = null;
   #paciente = null;
   #pasos = [];
-
   #nombreEl;
   #metaPacienteEl;
   #fechaEl;
@@ -21,6 +42,11 @@ export class TarjetaConsulta extends TarjetaSimple {
   #pasosContenedor;
   #atenderBtn;
 
+  /**
+   * Inicializa la estructura DOM proyectada en los slots de `TarjetaSimple`,
+   * enlaza la hoja de estilos en `this.root` y registra el evento de clic
+   * en el botón `"Atender Consulta"`.
+   */
   constructor() {
     super();
 
@@ -126,6 +152,11 @@ export class TarjetaConsulta extends TarjetaSimple {
     this.#renderizar();
   }
 
+  /**
+   * Actualiza los elementos DOM de la tarjeta con los datos actuales de `#consulta`,
+   * `#paciente` y `#pasos`, generando un `<ofiuco-resume-element>` por cada paso
+   * o mostrando un mensaje de estado vacío si no existen pasos previos.
+   */
   #renderizar() {
     const c = this.#consulta;
     if (!c) return;
@@ -164,6 +195,13 @@ export class TarjetaConsulta extends TarjetaSimple {
     }
   }
 
+  /**
+   * Formatea una instancia de `Date` utilizando la configuración regional `es-SV`
+   * (día a dos dígitos, mes abreviado, hora y minuto a dos dígitos).
+   *
+   * @param {Date|*} fecha - Fecha de inicio de la consulta.
+   * @returns {string} Fecha formateada o `"Sin fecha"` si no es una instancia válida de `Date`.
+   */
   #formatearFecha(fecha) {
     if (!(fecha instanceof Date)) return "Sin fecha";
     return fecha.toLocaleString("es-SV", {

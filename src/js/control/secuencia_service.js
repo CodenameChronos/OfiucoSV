@@ -1,27 +1,43 @@
 /**
- * @file Ordena los pasos de un procedimiento a partir de
- * procedimiento_paso_secuencia, asumiendo secuencia lineal: la referencia de
- * un paso es su paso anterior.
+ * @fileoverview Ordena los pasos de un procedimiento clínico a partir de los registros
+ * de `procedimiento_paso_secuencia`, asumiendo una secuencia lineal en la que la referencia
+ * de un paso apunta a su paso anterior.
  *
  * Trabaja con ids (strings) puros, sin entidades ni red. El service se
  * encarga de convertir las entidades a este formato.
  */
 
+/**
+ * Error de dominio lanzado cuando las relaciones de `procedimiento_paso_secuencia`
+ * no forman una cadena lineal única y válida (por ejemplo: pasos duplicados, bifurcaciones,
+ * ciclos, múltiples inicios o referencias huérfanas).
+ *
+ * @extends Error
+ */
 export class ErrorSecuencia extends Error {
+  /**
+   * Crea una nueva instancia de `ErrorSecuencia` con el mensaje descriptivo indicado.
+   *
+   * @param {string} mensaje - Descripción detallada de la inconsistencia detectada en la secuencia.
+   */
   constructor(mensaje) {
     super(mensaje);
+    /** @type {string} Nombre identificador del tipo de error (`"ErrorSecuencia"`). */
     this.name = "ErrorSecuencia";
   }
 }
 
 /**
- * @param {string[]} pasos ids de todos los pasos del procedimiento
- * @param {{paso: string, referencia: string|null}[]} secuencias filas de
- *        procedimiento_paso_secuencia. Las filas cuyo `paso` no esté en
- *        `pasos` se ignoran (pertenecen a otro procedimiento). `referencia`
- *        null o ausente significa "no tiene anterior".
- * @returns {string[]} ids en orden de ejecución
- * @throws {ErrorSecuencia} si la secuencia no es una cadena lineal completa
+ * Ordena linealmente los identificadores de los pasos de un procedimiento según sus
+ * relaciones de precedencia (`referencia` -> `paso`).
+ *
+ * @param {string[]} pasos - Identificadores únicos de todos los pasos del procedimiento.
+ * @param {Array<{ paso: string, referencia: string|null }>} secuencias - Filas de `procedimiento_paso_secuencia`.
+ *        Las filas cuyo `paso` no esté en `pasos` se ignoran (pertenecen a otro procedimiento).
+ *        Una `referencia` nula o ausente indica que el paso no tiene anterior.
+ * @returns {string[]} Arreglo de identificadores ordenados secuencialmente desde el paso inicial hasta el final.
+ * @throws {ErrorSecuencia} Si hay pasos repetidos, referencias externas, autorreferencias,
+ *         ramificaciones, más de un paso inicial, ciclos o desconexiones.
  */
 export function ordenar(pasos, secuencias) {
   if (pasos.length === 0) return [];
@@ -81,6 +97,15 @@ export function ordenar(pasos, secuencias) {
   return orden;
 }
 
+/**
+ * Obtiene el índice numérico de `idPaso` dentro de la secuencia ordenada, lanzando
+ * un error si el paso no forma parte de ella.
+ *
+ * @param {string[]} orden - Lista de pasos ya ordenada secuencialmente.
+ * @param {string} idPaso - Identificador del paso cuya posición se desea consultar.
+ * @returns {number} Índice base 0 del paso dentro de `orden`.
+ * @throws {ErrorSecuencia} Si `idPaso` no se encuentra en `orden`.
+ */
 function indiceDe(orden, idPaso) {
   const i = orden.indexOf(idPaso);
   if (i === -1)
@@ -88,12 +113,28 @@ function indiceDe(orden, idPaso) {
   return i;
 }
 
-/** @returns {string|null} id del paso anterior, o null si es el primero */
+/**
+ * Devuelve el identificador del paso inmediatamente anterior a `idPaso` dentro
+ * de la secuencia ordenada.
+ *
+ * @param {string[]} orden - Lista de pasos ordenada secuencialmente.
+ * @param {string} idPaso - Identificador del paso de referencia.
+ * @returns {string|null} Identificador del paso anterior, o `null` si `idPaso` es el primero.
+ * @throws {ErrorSecuencia} Si `idPaso` no pertenece a `orden`.
+ */
 export function anterior(orden, idPaso) {
   return orden[indiceDe(orden, idPaso) - 1] ?? null;
 }
 
-/** @returns {string|null} id del paso siguiente, o null si es el último */
+/**
+ * Devuelve el identificador del paso inmediatamente posterior a `idPaso` dentro
+ * de la secuencia ordenada.
+ *
+ * @param {string[]} orden - Lista de pasos ordenada secuencialmente.
+ * @param {string} idPaso - Identificador del paso de referencia.
+ * @returns {string|null} Identificador del paso siguiente, o `null` si `idPaso` es el último.
+ * @throws {ErrorSecuencia} Si `idPaso` no pertenece a `orden`.
+ */
 export function siguiente(orden, idPaso) {
   return orden[indiceDe(orden, idPaso) + 1] ?? null;
 }

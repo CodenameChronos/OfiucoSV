@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Web Component `<ofiuco-page-consulta>` que implementa la pantalla
+ * principal de seguimiento y atención de consulta médica (HU4). Coordina la carga
+ * de estado desde `AtencionService`, el mantenimiento de un borrador local editable
+ * frente a la vista persistida, la asignación y captura de resultados de exámenes,
+ * la navegación secuencial entre pasos (`stepper`), los diálogos de confirmación
+ * (`ConfirmacionRequerida`) y la notificación mediante toasts.
+ */
+
 import { BaseComponent } from "./core/base-component.js";
 import { defineOnce } from "./core/define-once.js";
 import { h } from "./core/dom.js";
@@ -27,16 +36,40 @@ import "./components/functional/ofiuco-stepper.js";
 import "./components/layout/ofiuco-confirm-dialog.js";
 import "./components/utils/ofiuco-toast.js";
 
+/** @type {string} URL resuelta de la hoja de estilos principal de la página de consulta. */
 const stylesUrl = new URL(
   "../../resources/styles/page_consulta.css",
   import.meta.url,
 ).href;
 
+/**
+ * Determina si un error capturado corresponde a una solicitud de confirmación
+ * explícita por parte de la capa de control/servicio (`ConfirmacionRequerida`).
+ *
+ * @param {*} error - Objeto o excepción capturada.
+ * @returns {boolean} `true` si requiere confirmación del usuario antes de proceder.
+ */
 const esConfirmacion = (error) => error?.name === "ConfirmacionRequerida";
+
+/**
+ * Extrae un mensaje legible de un error HTTP del proyecto (`error.mensaje`) o de una
+ * instancia estándar de `Error` (`error.message`), devolviendo un texto genérico de respaldo.
+ *
+ * @param {*} error - Objeto de error capturado.
+ * @returns {string} Mensaje descriptivo listo para mostrar al usuario.
+ */
 const mensajeDeError = (error) =>
   // El servicio HTTP del proyecto reporta el texto en `mensaje`; los Error estándar usan `message`.
   String(error?.mensaje || error?.message || "").trim() ||
   "Ocurrió un error inesperado.";
+
+/**
+ * Extrae la lista de identificadores `idProcedimientoPasoExamen` de las órdenes
+ * contenidas en un objeto de vista de consulta.
+ *
+ * @param {Object|null|undefined} vista - Vista actual devuelta por el servicio.
+ * @returns {Array<number|string>} Arreglo de IDs de exámenes ordenados en el paso.
+ */
 const idsDe = (vista) =>
   (vista?.ordenes ?? []).map((o) => o.idProcedimientoPasoExamen);
 
@@ -58,15 +91,21 @@ const idsDe = (vista) =>
  * Confirmaciones: si el servicio lanza ConfirmacionRequerida se muestran sus
  * avisos en un diálogo y, si el usuario acepta, se repite con { confirmado: true }.
  *
- * Emite SALIR (hacia la shell) cuando el usuario regresa al dashboard.
+ * Emite `ConsultaEventos.SALIR` (hacia la shell) cuando el usuario regresa al dashboard.
+ *
+ * @extends BaseComponent
+ * @fires CustomEvent#ofiuco:consulta-salir
  */
 export class OfiucoPageConsulta extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [stylesUrl];
 
   #contexto = null;
   #servicio = null;
   #servicioInyectado = false;
-
   #estado = "vacio"; // vacio | cargando | listo | error
   #mensajeError = "";
   #vista = null;
@@ -75,7 +114,6 @@ export class OfiucoPageConsulta extends BaseComponent {
   #ocupado = false;
   #cargaId = 0;
   #ultima = Promise.resolve();
-
   #toast;
   #dialogo;
   #estadoEl;
@@ -111,11 +149,16 @@ export class OfiucoPageConsulta extends BaseComponent {
     this.#servicioInyectado = valor != null;
   }
 
-  /** Promesa de la última operación iniciada (carga, guardar, avanzar...). */
   get terminado() {
     return this.#ultima;
   }
 
+  /**
+   * Construye toda la estructura DOM de la página de atención de consulta dentro del Shadow DOM
+   * (toasts, diálogo de confirmación, indicadores de estado, cabecera con paciente y referencia,
+   * sección del paso con notas/resultados/acciones, y barra lateral con asignador y stepper)
+   * y conecta todos los eventos internos.
+   */
   render() {
     this.#toast = h("ofiuco-toast");
     this.#dialogo = h("ofiuco-confirm-dialog");
@@ -204,13 +247,22 @@ export class OfiucoPageConsulta extends BaseComponent {
     this.#pintar();
   }
 
+  /**
+   * Ciclo de vida ejecutado al conectar el componente al DOM.
+   * Si ya existe un `contexto` configurado y el estado inicial sigue en `"vacio"`,
+   * inicia la carga de la consulta.
+   */
   onConnect() {
     if (this.#contexto && this.#estado === "vacio") {
       this.#ultima = this.#cargar();
     }
   }
 
-  /** Escucha los eventos de los componentes; ninguno se filtra fuera de la página. */
+  /**
+   * Suscribe los manejadores de eventos personalizados de `ConsultaEventos` en el
+   * `shadowRoot`, deteniendo su propagación hacia el exterior de la página y delegando
+   * cada acción en las funciones puras del borrador o en los métodos del servicio.
+   */
   #conectarEventos() {
     const escuchar = (evento, manejador) =>
       this.shadowRoot.addEventListener(evento, (e) => {
@@ -256,6 +308,12 @@ export class OfiucoPageConsulta extends BaseComponent {
 
   // ---------------------------------------------------------------- carga
 
+  /**
+   * Devuelve la instancia de servicio inyectada o realiza una importación dinámica
+   * de `AtencionService` inicializándolo con `idPersonaRolEmpleado` del contexto.
+   *
+   * @returns {Promise<Object>} Instancia lista de `AtencionService`.
+   */
   async #obtenerServicio() {
     if (this.#servicio) return this.#servicio;
     const { default: AtencionService } =
@@ -269,6 +327,13 @@ export class OfiucoPageConsulta extends BaseComponent {
     return this.#servicio;
   }
 
+  /**
+   * Carga los datos completos de la consulta médica a partir de `#contexto`,
+   * gestionando concurrencia mediante `#cargaId`, inicializando `#vista` y `#borrador`
+   * y actualizando `#estado` (`"cargando"` -> `"listo"` o `"error"`).
+   *
+   * @returns {Promise<void>}
+   */
   async #cargar() {
     const contexto = this.#contexto;
     if (!contexto) return;
@@ -298,7 +363,9 @@ export class OfiucoPageConsulta extends BaseComponent {
   /**
    * Adopta la vista que devolvió el servicio: reinicia el borrador y reconcilia
    * la selección (la cantidad de exámenes ordenados pudo subir o bajar).
-   * @returns {boolean} true si cambió el paso actual
+   *
+   * @param {Object} vista - Nueva vista persistida devuelta por `AtencionService`.
+   * @returns {boolean} `true` si cambió el identificador del paso actual.
    */
   #aplicarVista(vista) {
     const pasoAnterior = this.#vista?.paso?.id;
@@ -314,6 +381,10 @@ export class OfiucoPageConsulta extends BaseComponent {
 
   // ---------------------------------------------------------------- acciones
 
+  /**
+   * Persiste los cambios del borrador actual en el backend y muestra un toast de confirmación.
+   * @returns {Promise<void>}
+   */
   #alGuardar() {
     return this.#ejecutar(
       (o) => this.#servicio.guardarCambios(this.#borrador, o),
@@ -321,6 +392,12 @@ export class OfiucoPageConsulta extends BaseComponent {
     );
   }
 
+  /**
+   * Solicita confirmación modal al usuario antes de cerrar definitivamente la consulta
+   * mediante `this.#servicio.finalizar()`.
+   *
+   * @returns {Promise<void>}
+   */
   async #alFinalizar() {
     if (this.#ocupado || !this.#vista) return;
     const acepta = await this.#dialogo.preguntar({
@@ -337,6 +414,12 @@ export class OfiucoPageConsulta extends BaseComponent {
     );
   }
 
+  /**
+   * Verifica si existen cambios sin guardar entre `#borrador` y `#vista`; de haberlos,
+   * pide confirmación modal para descartarlos antes de emitir `ConsultaEventos.SALIR`.
+   *
+   * @returns {Promise<void>}
+   */
   async #alRegresar() {
     if (this.#ocupado || !this.#vista) return;
     if (hayCambios(this.#borrador, this.#vista)) {
@@ -359,9 +442,14 @@ export class OfiucoPageConsulta extends BaseComponent {
   }
 
   /**
-   * Ejecuta una operación del servicio: bloquea la pantalla, gestiona la
-   * confirmación, reinicia el borrador con la vista nueva y avisa del resultado.
+   * Ejecuta una operación del servicio: bloquea la pantalla (`#ocupado = true`),
+   * gestiona el flujo de confirmación si aplica, reinicia el borrador con la vista nueva,
+   * avisa del resultado mediante `#toast` y enfoca el título si hubo transición de paso.
    * Ante un error el borrador se conserva intacto.
+   *
+   * @param {(opciones: { confirmado?: boolean }) => Promise<Object>} operacion - Función que invoca el método correspondiente del servicio.
+   * @param {string|null} [mensajeExito=null] - Mensaje opcional a mostrar en un toast de éxito.
+   * @returns {Promise<void>}
    */
   async #ejecutar(operacion, mensajeExito = null) {
     if (this.#ocupado || !this.#vista) return;
@@ -386,6 +474,14 @@ export class OfiucoPageConsulta extends BaseComponent {
     if (cambioDePaso) this.#titulo.focus();
   }
 
+  /**
+   * Envuelve una operación del servicio capturando excepciones `ConfirmacionRequerida`:
+   * abre `#dialogo.preguntar` con los avisos recibidos y reintenta la operación con
+   * `{ confirmado: true }` si el usuario acepta, o devuelve `null` si cancela.
+   *
+   * @param {(opciones: { confirmado?: boolean }) => Promise<Object>} operacion - Operación asíncrona del servicio.
+   * @returns {Promise<Object|null>} Vista resultante o `null` si el usuario canceló la confirmación.
+   */
   async #conConfirmacion(operacion) {
     try {
       return await operacion({});
@@ -399,7 +495,12 @@ export class OfiucoPageConsulta extends BaseComponent {
     }
   }
 
-  /** Aplica una edición al borrador (ignorada en solo lectura o mientras se guarda). */
+  /**
+   * Aplica una función de transformación pura sobre `#borrador` y repinta la interfaz.
+   * Se ignora si no hay borrador, si hay una operación en curso o si la consulta es de solo lectura.
+   *
+   * @param {(borrador: Object) => Object} transformar - Función pura que devuelve el nuevo estado del borrador.
+   */
   #editar(transformar) {
     if (!this.#borrador || this.#ocupado || soloLectura(this.#vista)) return;
     this.#borrador = transformar(this.#borrador);
@@ -408,6 +509,11 @@ export class OfiucoPageConsulta extends BaseComponent {
 
   // ---------------------------------------------------------------- pintado
 
+  /**
+   * Sincroniza todos los subcomponentes visuales de la página (`#paciente`, `#titulo`,
+   * `#referencia`, `#notas`, `#resultados`, `#asignador`, `#stepper` y botones de acción)
+   * a partir del estado actual (`#estado`, `#vista`, `#borrador`, `#seleccionado` y `#ocupado`).
+   */
   #pintar() {
     const estado = this.#estado;
     this.#estadoEl.hidden = estado === "listo" || estado === "vacio";
@@ -457,7 +563,14 @@ export class OfiucoPageConsulta extends BaseComponent {
     this.#regresar.disabled = this.#ocupado;
   }
 
-  /** Asigna el valor solo si cambió (evita saltos del cursor al escribir). */
+  /**
+   * Asigna el valor textual a un `<ofiuco-text-area>` únicamente si difiere del actual
+   * (evitando saltos de cursor durante la escritura) y sincroniza su atributo `readonly`.
+   *
+   * @param {HTMLElement} area - Instancia de `<ofiuco-text-area>`.
+   * @param {string|null|undefined} valor - Texto esperado para el campo.
+   * @param {boolean} bloqueado - Indica si el campo debe quedar en modo de solo lectura.
+   */
   #sincronizarCampo(area, valor, bloqueado) {
     const texto = valor ?? "";
     if (area.value !== texto) area.value = texto;

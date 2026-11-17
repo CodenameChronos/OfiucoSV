@@ -1,14 +1,26 @@
+/**
+ * @fileoverview Web Component base `<ofiuco-button>` para botones reutilizables del sistema.
+ * Diseñado para ser utilizado directamente o extendido por botones especializados
+ * (ej. `SaveButton`, `NextButton`) que personalizan sus propiedades estáticas por defecto
+ * y el nombre del evento emitido al hacer clic.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import "../utils/ofiuco-icon.js";
 
+/** @type {string} URL resuelta de la hoja de estilos asociada al componente botón. */
 const stylesUrl = new URL(
   "../../../../resources/styles/components/button.css",
   import.meta.url,
 ).href;
 
-/** Evento que emite el botón genérico cuando una subclase no define el suyo. */
+/**
+ * Nombre del evento personalizado por defecto que emite el botón genérico
+ * cuando una subclase no define su propio `eventName`.
+ * @type {string}
+ */
 export const BUTTON_CLICK = "ofiuco:button-click";
 
 /**
@@ -27,10 +39,20 @@ export const BUTTON_CLICK = "ofiuco:button-click";
  *
  * Al hacer clic emite `eventName` (bubbles + composed) con `detail: { value }`.
  * No ejecuta lógica: quien lo contiene decide qué hacer.
+ * @extends BaseComponent
+ * @fires CustomEvent#ofiuco:button-click
  */
 export class OfiucoButton extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [stylesUrl];
 
+  /**
+   * Lista de atributos HTML observados para reactividad automática.
+   * @type {string[]}
+   */
   static observedAttributes = [
     "label",
     "icon",
@@ -40,11 +62,19 @@ export class OfiucoButton extends BaseComponent {
     "value",
   ];
 
-  /** Valores por defecto que las subclases sobrescriben. */
+  /** @type {string} Etiqueta por defecto cuando no se especifica el atributo `label`. */
   static defaultLabel = "";
+
+  /** @type {string|null} Nombre de ícono por defecto cuando no se especifica `icon`. */
   static defaultIcon = null;
+
+  /** @type {string} Variante visual por defecto (`primary` | `secondary` | `danger`). */
   static defaultVariant = "secondary";
+
+  /** @type {boolean} Indica si por defecto el botón muestra únicamente el ícono. */
   static defaultIconOnly = false;
+
+  /** @type {string} Nombre del evento personalizado que se despacha al hacer clic. */
   static eventName = BUTTON_CLICK;
 
   #button;
@@ -83,11 +113,20 @@ export class OfiucoButton extends BaseComponent {
     this.setAttribute("value", String(valor ?? ""));
   }
 
-  /** Lleva el foco al botón interno (gestión de foco desde la página). */
+  /**
+   * Transfiere el foco al elemento `<button>` interno dentro del Shadow DOM
+   * (útil para gestión de accesibilidad y foco desde vistas o formularios padre).
+   *
+   * @param {FocusOptions} [opciones] - Opciones estándar de `HTMLElement.prototype.focus()`.
+   */
   focus(opciones) {
     this.#button?.focus(opciones);
   }
 
+  /**
+   * Construye la estructura interna del componente (`<button>`, `<ofiuco-icon>` y `<span>`),
+   * enlaza el evento `click` y sincroniza el estado inicial de sus atributos.
+   */
   render() {
     this.#iconEl = h("ofiuco-icon");
     this.#textEl = h("span", { class: "button__texto" });
@@ -102,10 +141,18 @@ export class OfiucoButton extends BaseComponent {
     this.#sincronizar();
   }
 
+  /**
+   * Callback nativo de Custom Elements ejecutado cuando cambia algún atributo observado.
+   * Actualiza la vista interna si el componente ya ha sido renderizado.
+   */
   attributeChangedCallback() {
     if (this.rendered) this.#sincronizar();
   }
 
+  /**
+   * Sincroniza el estado de las propiedades y atributos actuales (`variant`, `disabled`,
+   * `icon`, `label`, `iconOnly`) con los elementos internos del Shadow DOM y atributos ARIA.
+   */
   #sincronizar() {
     const { label, icon, iconOnly } = this;
 
@@ -129,6 +176,10 @@ export class OfiucoButton extends BaseComponent {
     }
   }
 
+  /**
+   * Despacha el evento personalizado definido en `this.constructor.eventName`
+   * atravesando el límite del Shadow DOM (`composed: true`) y burbujeando (`bubbles: true`).
+   */
   #emitir() {
     this.dispatchEvent(
       new CustomEvent(this.constructor.eventName, {

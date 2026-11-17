@@ -1,8 +1,34 @@
+/**
+ * @fileoverview Web Component `<ofiuco-text-area>` que encapsula un campo de texto
+ * multilínea (`<textarea>`) con etiqueta asociada (`<label>`), soporte para límite
+ * de caracteres (`maxlength`) con contador accesible en vivo (`aria-live="polite"`),
+ * propiedades reflejadas y emisión de eventos personalizados `value-changed` y `change`.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 
+/**
+ * Componente web `<ofiuco-text-area [label] [value] [placeholder] [rows] [maxlength] [required] [disabled] [readonly]>`.
+ *
+ * Control de entrada multilínea reutilizable dentro del sistema OfiucoSV.
+ * Cuando se define el atributo `maxlength`, muestra automáticamente un contador
+ * de caracteres (`longitud / máximo`) vinculado mediante `aria-describedby`.
+ *
+ * Eventos emitidos (`bubbles: true`, `composed: true`) con `detail: { value }`:
+ * - `value-changed`: En cada evento nativo `input` mientras el usuario escribe.
+ * - `change`: Cuando el usuario confirma el cambio y el control pierde el foco.
+ *
+ * @extends BaseComponent
+ * @fires CustomEvent#value-changed
+ * @fires CustomEvent#change
+ */
 export class OfiucoTextArea extends BaseComponent {
+  /**
+   * Lista de atributos HTML observados para sincronizar el estado y presentación del control.
+   * @type {string[]}
+   */
   static observedAttributes = [
     "label",
     "value",
@@ -14,6 +40,10 @@ export class OfiucoTextArea extends BaseComponent {
     "readonly",
   ];
 
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/text_area.css",
@@ -102,6 +132,11 @@ export class OfiucoTextArea extends BaseComponent {
     this.toggleAttribute("readonly", Boolean(value));
   }
 
+  /**
+   * Construye la estructura DOM del campo dentro del Shadow DOM (`<label>`, `<textarea>`
+   * y contador `<small>`), enlaza los eventos `input` y `change` para emitir eventos
+   * personalizados hacia el exterior e inicializa el contador de caracteres.
+   */
   render() {
     const id = `ofiuco-textarea-${
       globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
@@ -164,6 +199,14 @@ export class OfiucoTextArea extends BaseComponent {
     this.#updateCounter();
   }
 
+  /**
+   * Callback nativo de Custom Elements ejecutado cuando cambia cualquiera de los atributos
+   * observados. Sincroniza etiqueta, valor, placeholder, filas, límite de caracteres y estados booleanos.
+   *
+   * @param {string} name - Nombre del atributo modificado.
+   * @param {string|null} oldValue - Valor anterior del atributo.
+   * @param {string|null} newValue - Nuevo valor del atributo.
+   */
   attributeChangedCallback(name, oldValue, newValue) {
     if (!this.rendered || oldValue === newValue) return;
 
@@ -198,6 +241,10 @@ export class OfiucoTextArea extends BaseComponent {
     }
   }
 
+  /**
+   * Actualiza el texto y visibilidad del contador `#hint` (`longitud / maxLength`)
+   * cuando el `<textarea>` tiene configurado un `maxLength >= 0`.
+   */
   #updateCounter() {
     if (!this.#control || !this.#hint) return;
 
