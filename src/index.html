@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <link rel="manifest" href="./src/manifest.json" />
     <link rel="stylesheet" href="./resources/styles/palette.css" />
     <link rel="stylesheet" href="./resources/styles/components/tokens.css" />
     <link rel="stylesheet" href="./resources/styles/main.css" />
@@ -18,5 +19,18 @@
       type="module"
       src="./js/boundary/components/layout/ofiuco-footer.js"
     ></script>
+
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("./serviceWorker.js")
+            .then((reg) => console.log("ServiceWorker registrado:", reg.scope))
+            .catch((err) =>
+              console.error("Error al registrar ServiceWorker:", err),
+            );
+        });
+      }
+    </script>
   </body>
 </html>

@@ -8,6 +8,7 @@ import ExamenResultadoService from "./examenResultado_service.js";
 import PersonaService from "./persona_service.js";
 import ExamenService from "./examen_service.js";
 import ProcedimientoPasoExamenService from "./procedimientoPasoExamen_service.js";
+import PersonaRolService from "./personaRol_service.js";
 import ConsultaProcedimientoPaso from "../entity/consultaProcedimientoPaso.js";
 import { anterior, siguiente } from "./secuencia_service.js";
 import {
@@ -21,16 +22,20 @@ import {
 } from "./estado_paso.js";
 import { leerIds, escribirIds } from "./indicaciones_service.js";
 import {
+  fueAtendido,
+  candidatosResponsable,
+  elegirResponsable,
+} from "./atencion_consulta_responsable.js";
+import {
   ordenesSinResultado,
   mensajeResultadosPendientes,
   mensajeExamenesQuitados,
   planificarSeleccion,
 } from "./reglas_consulta.js";
-
-// Importar los nuevos módulos atómicos
 import {
   cargarDatosAtencion,
   _cargarOrdenes,
+  _activarProcedimientoEnContexto,
 } from "./atencion_consulta_loader.js";
 import { escribirCambiosAtencion } from "./atencion_consulta_writter.js";
 import { construirVista } from "./atencion_consulta_mapper.js";
@@ -47,8 +52,8 @@ const FABRICA_POR_DEFECTO = {
   consulta: (idPersonaRol) => new ConsultaService(idPersonaRol),
   consultaProcedimiento: (idConsulta) =>
     new ConsultaProcedimientoService(idConsulta),
-  consultaProcedimientoPaso: (idCP) =>
-    new ConsultaProcedimientoPasoService(idCP),
+  consultaProcedimientoPaso: (idCPP) =>
+    new ConsultaProcedimientoPasoService(idCPP),
   procedimientoPaso: (idProcedimiento) =>
     new ProcedimientoPasoService(idProcedimiento),
   secuencia: (idProcedimiento) =>
@@ -62,6 +67,8 @@ const FABRICA_POR_DEFECTO = {
       idProcedimiento,
       idPaso,
     ),
+  personalDeClinica: (idClinica) =>
+    new PersonaRolService().listarPersonalDeClinica(idClinica),
 };
 
 const tieneTexto = (resultado) =>
@@ -73,6 +80,7 @@ export default class AtencionService {
   #f;
   #idPersonaRolEmpleado;
   #ahora;
+  #azar;
   #ids = null;
   #e = null;
 
@@ -80,16 +88,33 @@ export default class AtencionService {
     fabrica = {},
     idPersonaRolEmpleado = null,
     ahora = () => new Date().toISOString(),
+    azar = Math.random,
   } = {}) {
     this.#f = { ...FABRICA_POR_DEFECTO, ...fabrica };
     this.#idPersonaRolEmpleado = idPersonaRolEmpleado;
     this.#ahora = ahora;
+    this.#azar = azar;
   }
 
-  async cargar({ idPersonaRol, idConsulta }) {
+  async cargar({ idPersonaRol, idConsulta }, idCpPreferido = null) {
     this.#ids = { idPersonaRol, idConsulta };
-    this.#e = await cargarDatosAtencion(this.#f, this.#ids, (id, estado) =>
-      this.#abrirPaso(id, estado),
+    this.#e = await cargarDatosAtencion(
+      this.#f,
+      this.#ids,
+      (id, estado) => this.#abrirPaso(id, estado),
+      idCpPreferido,
+    );
+    return this.#vista();
+  }
+
+  async seleccionarProcedimiento(idConsultaProcedimiento) {
+    const e = this.#exigirCarga();
+    if (e.idCpActivo === idConsultaProcedimiento) return this.#vista();
+    await _activarProcedimientoEnContexto(
+      this.#f,
+      e,
+      idConsultaProcedimiento,
+      (id, estado) => this.#abrirPaso(id, estado),
     );
     return this.#vista();
   }
@@ -128,13 +153,16 @@ export default class AtencionService {
     const plan = this.#planificar(b);
     this.#exigirConfirmacion(this.#avisos(b, plan, true), confirmado);
 
+    const idSiguiente = siguiente(e.orden, e.idActual);
+    const responsable = await this.#responsableParaAbrir(idSiguiente, e);
+
     await escribirCambiosAtencion(this.#f, e, this.#ids, b, plan, this.#ahora);
     await this.#actualizarFila(e.idActual, {
       estado: Estado.FINALIZADO,
       fechaFin: this.#ahora(),
     });
-    await this.#abrirPaso(siguiente(e.orden, e.idActual));
-    return this.cargar(this.#ids);
+    await this.#abrirPaso(idSiguiente, null, responsable);
+    return this.cargar(this.#ids, e.idCpActivo);
   }
 
   async retroceder(borrador, { confirmado = false } = {}) {
@@ -152,7 +180,7 @@ export default class AtencionService {
       fechaFin: null,
     });
     await this.#abrirPaso(anterior(e.orden, e.idActual));
-    return this.cargar(this.#ids);
+    return this.cargar(this.#ids, e.idCpActivo);
   }
 
   async finalizar(borrador, { confirmado = false } = {}) {
@@ -176,14 +204,30 @@ export default class AtencionService {
     cp.fechaFin = ahora;
     await svcCP.update(cp.idConsultaProcedimiento, cp);
 
-    const svcConsulta = this.#f.consulta(this.#ids.idPersonaRol);
-    const consulta = await svcConsulta.findById(this.#ids.idConsulta);
-    await svcConsulta.update(
-      consulta.idConsulta,
-      consulta.con({ fechaFin: new Date(ahora) }),
-    );
+    const procActual = e.procedimientosPorId?.get(e.idCpActivo);
+    if (procActual) procActual.completa = true;
 
-    return this.cargar(this.#ids);
+    const todosCompletos = e.procedimientosPorId
+      ? [...e.procedimientosPorId.values()].every((p) => p.completa)
+      : true;
+
+    if (todosCompletos) {
+      const svcConsulta = this.#f.consulta(this.#ids.idPersonaRol);
+      const consulta = await svcConsulta.findById(this.#ids.idConsulta);
+      await svcConsulta.update(
+        consulta.idConsulta,
+        consulta.con({ fechaFin: new Date(ahora) }),
+      );
+      return this.cargar(this.#ids, e.idCpActivo);
+    }
+
+    const siguientePendiente = [...e.procedimientosPorId.values()].find(
+      (p) => !p.completa,
+    );
+    return this.cargar(
+      this.#ids,
+      siguientePendiente?.cp.idConsultaProcedimiento ?? e.idCpActivo,
+    );
   }
 
   #ordenesInfo() {
@@ -324,18 +368,58 @@ export default class AtencionService {
       .update(fila.idConsultaProcedimientoPaso, fila);
   }
 
-  async #abrirPaso(idPaso, estadoContexto = null) {
+  async #responsableParaAbrir(idPaso, e = this.#e) {
+    if (fueAtendido(e.filaPor.get(idPaso))) return null;
+    if (e.orden[0] === idPaso && this.#empleadoValido()) {
+      return this.#idPersonaRolEmpleado;
+    }
+    return this.#sortearResponsable(e);
+  }
+
+  #empleadoValido() {
+    return (
+      Boolean(this.#idPersonaRolEmpleado) &&
+      this.#idPersonaRolEmpleado !== this.#ids?.idPersonaRol
+    );
+  }
+
+  async #sortearResponsable(e) {
+    const clinica = e.consulta.clinica;
+    const idClinica =
+      typeof clinica === "string" ? clinica : clinica?.idClinica;
+    if (!idClinica) {
+      throw new Error(
+        "No se pudo determinar la clínica de la consulta para asignar el paso",
+      );
+    }
+    const personal = candidatosResponsable(
+      await this.#f.personalDeClinica(idClinica),
+    );
+    const elegido = elegirResponsable(personal, this.#azar);
+    if (!elegido) {
+      throw new Error(
+        "No hay personal disponible en la clínica para atender el paso",
+      );
+    }
+    return elegido.idPersonaRol;
+  }
+
+  async #abrirPaso(idPaso, estadoContexto = null, responsable = undefined) {
     const e = estadoContexto ?? this.#e;
     const fila = e.filaPor.get(idPaso);
     if (fila && parsearEstado(fila.estado) === Estado.EN_CURSO) return;
+
+    const idResponsable =
+      responsable !== undefined
+        ? responsable
+        : await this.#responsableParaAbrir(idPaso, e);
 
     const svc = this.#f.consultaProcedimientoPaso(e.cp.idConsultaProcedimiento);
     if (fila) {
       fila.estado = Estado.EN_CURSO;
       fila.fechaFin = null;
       fila.fechaInicio = fila.fechaInicio ?? this.#ahora();
-      if (this.#idPersonaRolEmpleado)
-        fila.idPersonaRol = this.#idPersonaRolEmpleado;
+      if (idResponsable) fila.idPersonaRol = idResponsable;
       await svc.update(fila.idConsultaProcedimientoPaso, fila);
     } else {
       const nueva = new ConsultaProcedimientoPaso({
@@ -343,7 +427,7 @@ export default class AtencionService {
         fechaInicio: this.#ahora(),
         idConsultaProcedimiento: e.cp.idConsultaProcedimiento,
         idProcedimientoPaso: idPaso,
-        idPersonaRol: this.#idPersonaRolEmpleado,
+        idPersonaRol: idResponsable,
       });
       nueva.idConsultaProcedimientoPaso = await svc.create(nueva);
       e.filaPor.set(idPaso, nueva);

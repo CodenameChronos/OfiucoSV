@@ -27,8 +27,33 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
     })
     .sort((x, y) => x.nombre.localeCompare(y.nombre));
 
+  const procedimientos = [...(e.procedimientosPorId?.values() ?? [])].map(
+    (proc, idx) => {
+      const completados = proc.orden.filter(
+        (idPaso) => proc.filaPor.get(idPaso)?.estado === Estado.FINALIZADO,
+      ).length;
+      return {
+        idConsultaProcedimiento: proc.cp.idConsultaProcedimiento,
+        idProcedimiento: proc.idProcedimiento,
+        nombre: proc.nombreProcedimiento || `Procedimiento ${idx + 1}`,
+        completa: proc.completa,
+        pasosCompletados: completados,
+        totalPasos: proc.orden.length,
+        activo: proc.cp.idConsultaProcedimiento === e.idCpActivo,
+      };
+    },
+  );
+
+  const quedanOtrosProcedimientos = procedimientos.some(
+    (proc) => !proc.activo && !proc.completa,
+  );
+
   return {
     completa: e.completa,
+    consultaCompleta: Boolean(e.consultaCompleta),
+    idConsultaProcedimientoActivo: e.idCpActivo,
+    procedimientos,
+    quedanOtrosProcedimientos,
     paciente: {
       idPersona: p.idPersona,
       nombres: p.nombres,
