@@ -120,9 +120,10 @@ export class TarjetaCita extends BaseComponent {
           "li",
           { class: "procedimiento-item" },
           h("span", { class: "procedimiento-titulo" }, paso.titulo),
-          paso.descripcion
-            ? h("p", { class: "procedimiento-descripcion" }, paso.descripcion)
-            : null,
+          // Solución: Usar un arreglo vacío en lugar de "null" si no hay descripción
+          ...(paso.descripcion
+            ? [h("p", { class: "procedimiento-descripcion" }, paso.descripcion)]
+            : []),
         ),
       ),
     );

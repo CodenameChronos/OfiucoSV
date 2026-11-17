@@ -33,6 +33,7 @@ function fechaHoyLocal() {
   const dia = String(hoy.getDate()).padStart(2, "0");
   return `${anio}-${mes}-${dia}`;
 }
+
 /**
  * Normaliza fechas provenientes de Jakarta JSON-B (ej. "2026-10-29T16:26:54Z[UTC]")
  * eliminando el sufijo "[UTC]" para que Date() de JavaScript las parsee correctamente.
@@ -150,14 +151,6 @@ export class BusquedaCitas extends BaseComponent {
       label: "Clínica",
       placeholder: "Seleccione clínica...",
       "min-chars": "0",
-    });
-
-    this.#dpDesde = h("ofiuco-date-picker", {
-      label: "Desde",
-    });
-
-    this.#dpHasta = h("ofiuco-date-picker", {
-      label: "Hasta",
     });
 
     const btnBuscar = h(
@@ -298,11 +291,12 @@ export class BusquedaCitas extends BaseComponent {
   /** Consulta una colección raíz del backend (ej. "documento", "persona-rol", "consulta"). */
   async #obtenerColeccionRaiz(recurso) {
     const base = (this.#personaService.URL ?? "").replace(/\/persona\/?$/, "/");
+    const sep = recurso.includes("?") ? "&" : "?";
     const registros = [];
     for (let pagina = 0; pagina < MAX_PAGINAS; pagina += 1) {
       const first = pagina * TAMANO_PAGINA;
       const resp = await fetch(
-        `${base}${recurso}?first=${first}&max=${TAMANO_PAGINA}`,
+        `${base}${recurso}${sep}first=${first}&max=${TAMANO_PAGINA}`,
       );
       if (!resp.ok) {
         throw new Error(`Error HTTP ${resp.status} al consultar ${recurso}`);
@@ -496,6 +490,7 @@ export class BusquedaCitas extends BaseComponent {
 
   /**
    * Renderiza las tarjetas de consulta en el grid de resultados.
+   *
    * @param {Array} consultas
    */
   mostrarResultados(consultas = []) {
