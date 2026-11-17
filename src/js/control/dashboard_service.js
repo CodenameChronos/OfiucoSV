@@ -7,7 +7,6 @@ import ConsultaProcedimientoPasoService from "./consultaProcedimientoPaso_servic
  * de una asignación de empleado.
  */
 export default class DashboardService {
-
   /**
    * Convierte las fechas que devuelve Java (por ejemplo,
    * 2026-11-15T00:05:41.135Z[UTC]) a fechas válidas en JavaScript.
@@ -42,36 +41,33 @@ export default class DashboardService {
 
       const fechaDia = this.fechaLocalISO(fecha);
 
-      return (
-        (!desde || fechaDia >= desde) &&
-        (!hasta || fechaDia <= hasta)
-      );
+      return (!desde || fechaDia >= desde) && (!hasta || fechaDia <= hasta);
     });
 
     return Promise.all(
       consultasFiltradas.map(async (consulta) => {
         const procedimientos = await new ConsultaProcedimientoService(
-          consulta.idConsulta
+          consulta.idConsulta,
         ).findAll();
 
         const procedimientosConPasos = await Promise.all(
           procedimientos.map(async (procedimiento) => {
             const pasos = await new ConsultaProcedimientoPasoService(
-              procedimiento.idConsultaProcedimiento
+              procedimiento.idConsultaProcedimiento,
             ).findAll();
 
             return {
               ...procedimiento,
-              pasos
+              pasos,
             };
-          })
+          }),
         );
 
         return {
           ...consulta,
-          procedimientos: procedimientosConPasos
+          procedimientos: procedimientosConPasos,
         };
-      })
+      }),
     );
   }
 
@@ -81,7 +77,7 @@ export default class DashboardService {
     }
 
     return new ConsultaProcedimientoPasoService(
-      idConsultaProcedimiento
+      idConsultaProcedimiento,
     ).findById(idPaso);
   }
 

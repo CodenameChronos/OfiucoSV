@@ -2,7 +2,9 @@
 :host {
   display: inline-block;
   max-width: 100%;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
 }
+
 [hidden] {
   display: none !important;
 }
@@ -14,43 +16,46 @@
   gap: 0.5rem;
   box-sizing: border-box;
   max-width: 100%;
-  /* Los contenedores pueden pedir ancho completo con --ofiuco-boton-ancho: 100%. */
   width: var(--ofiuco-boton-ancho, auto);
-  min-height: 2.75rem;
-  padding: 0.5rem 1.1rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 1.15rem;
   font: inherit;
+  font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
   cursor: pointer;
-  color: var(--ofiuco-boton-texto, #ececec);
-  background: var(--ofiuco-boton-fondo, #4a4d4f);
-  border: 1px solid var(--ofiuco-boton-borde, #6b6f72);
-  border-radius: var(--ofiuco-radio, 0.375rem);
-  box-shadow: 0 1px 2px rgba(18, 59, 74, 0.25);
+  color: var(--ofiuco-boton-texto, var(--g-color-primary, #123b4a));
+  background: var(--ofiuco-boton-fondo, var(--g-color-surface, #ffffff));
+  border: 1px solid var(--ofiuco-boton-borde, rgba(18, 59, 74, 0.22));
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(18, 59, 74, 0.06);
   transition:
-    filter 0.12s ease,
-    box-shadow 0.12s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
     transform 0.06s ease;
 }
+
 .button--solo-icono {
-  min-width: 2.75rem;
+  min-width: 2.5rem;
   padding: 0.5rem;
 }
 
 .button[data-variant="primary"] {
-  color: var(--ofiuco-color-sobre-acento, #fff);
+  color: #ffffff;
   background: var(
     --ofiuco-boton-primario-fondo,
-    var(--ofiuco-color-acento, #582593)
+    var(--g-color-primary, #123b4a)
   );
   border-color: var(
     --ofiuco-boton-primario-borde,
-    var(--ofiuco-color-acento, #582593)
+    var(--g-color-primary, #123b4a)
   );
 }
+
 .button[data-variant="danger"] {
-  color: var(--ofiuco-color-sobre-acento, #fff);
+  color: #ffffff;
   background: var(
     --ofiuco-boton-peligro-fondo,
     var(--ofiuco-color-error, #b3261e)
@@ -62,24 +67,41 @@
 }
 
 .button:hover:not(:disabled) {
-  filter: brightness(1.15);
-  box-shadow: 0 0.125rem 0.5rem rgba(18, 59, 74, 0.3);
+  background: var(--g-color-background, #f2f7f6);
+  border-color: rgba(18, 59, 74, 0.35);
+  box-shadow: 0 2px 6px rgba(18, 59, 74, 0.12);
 }
+
+.button[data-variant="primary"]:hover:not(:disabled),
+.button[data-variant="danger"]:hover:not(:disabled) {
+  filter: brightness(1.12);
+  background: var(
+    --ofiuco-boton-primario-fondo,
+    var(--g-color-primary, #123b4a)
+  );
+}
+
+.button[data-variant="danger"]:hover:not(:disabled) {
+  background: var(
+    --ofiuco-boton-peligro-fondo,
+    var(--ofiuco-color-error, #b3261e)
+  );
+}
+
 .button:active:not(:disabled) {
-  filter: brightness(0.95);
   box-shadow: none;
   transform: translateY(1px);
 }
+
 .button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-/* Doble anillo: claro por dentro y oscuro por fuera, visible sobre fondos claros u oscuros. */
 .button:focus-visible {
-  outline: 2px solid var(--ofiuco-foco, #fff);
-  box-shadow: 0 0 0 4px var(--g-color-primary, #123b4a);
+  outline: 2px solid var(--g-color-accent, #4db6ac);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
