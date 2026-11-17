@@ -63,3 +63,18 @@ export function elegirResponsable(candidatos, azar = Math.random) {
   const indice = Number.isFinite(n) ? Math.floor(n * candidatos.length) : 0;
   return candidatos[Math.min(Math.max(indice, 0), candidatos.length - 1)];
 }
+
+/**
+ * Clínica a la que pertenece una consulta. Según el esquema la consulta NO
+ * tiene clínica propia: pertenece a un persona_rol (consulta.id_persona_rol) y
+ * la clínica es persona_rol.id_clinica. Cada relación puede llegar como id
+ * suelto o como entidad anidada.
+ * @returns {string|null} null si no se puede determinar
+ */
+export function idClinicaDeConsulta(consulta) {
+  const rol = consulta?.idPersonaRol;
+  if (rol === null || typeof rol !== "object") return null;
+  const clinica = rol.idClinica;
+  const id = typeof clinica === "string" ? clinica : clinica?.idClinica;
+  return id || null;
+}

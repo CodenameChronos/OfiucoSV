@@ -2,35 +2,31 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GalenoSV · Portal Clínico</title>
     <link rel="manifest" href="./src/manifest.json" />
-    <link rel="stylesheet" href="./resources/styles/palette.css" />
     <link rel="stylesheet" href="./resources/styles/components/tokens.css" />
+    <link rel="stylesheet" href="./resources/styles/palette.css" />
     <link rel="stylesheet" href="./resources/styles/main.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #f4f8f9;
+        display: flex;
+        flex-direction: column;
+      }
+      #app {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+    </style>
   </head>
   <body>
-    <ofiuco-header app-name="OfiucoSV"></ofiuco-header>
+    <ofiuco-header></ofiuco-header>
+    <main id="OfiucoSV" aria-live="polite"></main>
     <ofiuco-footer></ofiuco-footer>
-
-    <script
-      type="module"
-      src="./js/boundary/components/layout/ofiuco-header.js"
-    ></script>
-    <script
-      type="module"
-      src="./js/boundary/components/layout/ofiuco-footer.js"
-    ></script>
-
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./serviceWorker.js")
-            .then((reg) => console.log("ServiceWorker registrado:", reg.scope))
-            .catch((err) =>
-              console.error("Error al registrar ServiceWorker:", err),
-            );
-        });
-      }
-    </script>
+    <script type="module" src="./js/ofiuco-spa-orquestador.js"></script>
   </body>
 </html>

@@ -34,7 +34,9 @@ const stylesUrl = new URL(
 
 const esConfirmacion = (error) => error?.name === "ConfirmacionRequerida";
 const mensajeDeError = (error) =>
-  error?.message ? String(error.message) : "Ocurrió un error inesperado.";
+  // El servicio HTTP del proyecto reporta el texto en `mensaje`; los Error estándar usan `message`.
+  String(error?.mensaje || error?.message || "").trim() ||
+  "Ocurrió un error inesperado.";
 const idsDe = (vista) =>
   (vista?.ordenes ?? []).map((o) => o.idProcedimientoPasoExamen);
 
@@ -257,10 +259,12 @@ export class OfiucoPageConsulta extends BaseComponent {
   async #obtenerServicio() {
     if (this.#servicio) return this.#servicio;
     const { default: AtencionService } =
-      await import("../../control/atencion_consulta_service.js");
+      await import("../control/atencion_consulta_service.js");
+    // El empleado que atiende debe venir en el contexto. No se rellena con idPersonaRol:
+    // el servicio descarta al "empleado" que coincide con el persona_rol de la consulta
+    // y sortea un responsable al azar entre el personal de la clínica.
     this.#servicio = new AtencionService({
-      idPersonaRolEmpleado:
-        this.#contexto.idPersonaRolEmpleado ?? this.#contexto.idPersonaRol,
+      idPersonaRolEmpleado: this.#contexto.idPersonaRolEmpleado ?? null,
     });
     return this.#servicio;
   }

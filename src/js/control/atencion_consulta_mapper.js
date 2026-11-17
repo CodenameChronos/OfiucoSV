@@ -2,10 +2,12 @@ import { leerPaso } from "./observaciones_service.js";
 import {
   Estado,
   aEstadoVisual,
+  parsearEstado,
   puedeEditar,
   puedeAvanzar,
   puedeRetroceder,
   puedeFinalizar,
+  puedeFinalizarConsulta,
 } from "./estado_paso.js";
 import { calcularEdad } from "./reglas_consulta.js";
 
@@ -25,12 +27,15 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
         ordenado: ordenadosIds.has(id.toLowerCase()),
       };
     })
-    .sort((x, y) => x.nombre.localeCompare(y.nombre));
+    .sort((x, y) =>
+      String(x.nombre ?? "").localeCompare(String(y.nombre ?? "")),
+    );
 
   const procedimientos = [...(e.procedimientosPorId?.values() ?? [])].map(
     (proc, idx) => {
       const completados = proc.orden.filter(
-        (idPaso) => proc.filaPor.get(idPaso)?.estado === Estado.FINALIZADO,
+        (idPaso) =>
+          parsearEstado(proc.filaPor.get(idPaso)?.estado) === Estado.FINALIZADO,
       ).length;
       return {
         idConsultaProcedimiento: proc.cp.idConsultaProcedimiento,
@@ -50,7 +55,15 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
 
   return {
     completa: e.completa,
+    // Todos los procedimientos finalizados.
     consultaCompleta: Boolean(e.consultaCompleta),
+    // La consulta ya se cerró (finalizarConsulta).
+    consultaFinalizada: Boolean(e.consultaFinalizada),
+    // La consulta puede cerrarse ahora: todos finalizados y aún abierta.
+    puedeFinalizarConsulta: puedeFinalizarConsulta(
+      e.consultaCompleta,
+      e.consultaFinalizada,
+    ),
     idConsultaProcedimientoActivo: e.idCpActivo,
     procedimientos,
     quedanOtrosProcedimientos,
@@ -82,7 +95,9 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
       editable: puedeEditar(estado),
       puedeAvanzar: puedeAvanzar(estado, haySiguiente),
       puedeRetroceder: puedeRetroceder(estado, hayAnterior),
+      // Finaliza el PROCEDIMIENTO activo (último paso); no la consulta.
       puedeFinalizar: puedeFinalizar(estado, haySiguiente),
+      puedeFinalizarProcedimiento: puedeFinalizar(estado, haySiguiente),
     },
     notas: leerPaso(e.cp.observaciones, e.idActual)?.notas ?? "",
     examenes,

@@ -44,7 +44,10 @@ export function puedeRetroceder(estado, hayAnterior) {
   return enCurso(estado) && Boolean(hayAnterior);
 }
 
-/** Finalizar la consulta solo aplica en el último paso. */
+/**
+ * Finalizar el PROCEDIMIENTO solo aplica en su último paso. Finalizar la
+ * consulta es una acción distinta (ver puedeFinalizarConsulta).
+ */
 export function puedeFinalizar(estado, haySiguiente) {
   return enCurso(estado) && !haySiguiente;
 }
@@ -92,6 +95,37 @@ export function alFinalizar(estadoActual, haySiguiente) {
     );
   }
   return Estado.FINALIZADO;
+}
+
+/**
+ * La consulta se finaliza aparte, cuando todos sus procedimientos ya están
+ * finalizados y la consulta todavía no se cerró.
+ * @param {boolean} todosLosProcedimientosCompletos
+ * @param {boolean} consultaFinalizada
+ */
+export function puedeFinalizarConsulta(
+  todosLosProcedimientosCompletos,
+  consultaFinalizada,
+) {
+  return Boolean(todosLosProcedimientosCompletos) && !consultaFinalizada;
+}
+
+/**
+ * @throws {ErrorEstado} si la consulta ya está finalizada o aún hay
+ *         procedimientos sin finalizar
+ */
+export function alFinalizarConsulta(
+  todosLosProcedimientosCompletos,
+  consultaFinalizada,
+) {
+  if (consultaFinalizada) {
+    throw new ErrorEstado("La consulta ya está finalizada");
+  }
+  if (!todosLosProcedimientosCompletos) {
+    throw new ErrorEstado(
+      "No se puede finalizar la consulta: aún hay procedimientos sin finalizar",
+    );
+  }
 }
 
 /**

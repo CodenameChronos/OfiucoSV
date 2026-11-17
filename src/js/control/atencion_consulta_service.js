@@ -19,12 +19,14 @@ import {
   alAvanzar,
   alRetroceder,
   alFinalizar,
+  alFinalizarConsulta,
 } from "./estado_paso.js";
 import { leerIds, escribirIds } from "./indicaciones_service.js";
 import {
   fueAtendido,
   candidatosResponsable,
   elegirResponsable,
+  idClinicaDeConsulta,
 } from "./atencion_consulta_responsable.js";
 import {
   ordenesSinResultado,
@@ -183,7 +185,13 @@ export default class AtencionService {
     return this.cargar(this.#ids, e.idCpActivo);
   }
 
-  async finalizar(borrador, { confirmado = false } = {}) {
+  /**
+   * Finaliza el PROCEDIMIENTO activo (solo desde su último paso). No finaliza la
+   * consulta: eso es una acción aparte (finalizarConsulta) que exige que todos
+   * los procedimientos estén finalizados. Tras finalizar se carga el siguiente
+   * procedimiento pendiente, o se permanece en el actual si ya no quedan.
+   */
+  async finalizarProcedimiento(borrador, { confirmado = false } = {}) {
     const e = this.#exigirCarga();
     const { estado, haySiguiente } = this.#contextoPaso();
     alFinalizar(estado, haySiguiente);
@@ -207,27 +215,49 @@ export default class AtencionService {
     const procActual = e.procedimientosPorId?.get(e.idCpActivo);
     if (procActual) procActual.completa = true;
 
-    const todosCompletos = e.procedimientosPorId
-      ? [...e.procedimientosPorId.values()].every((p) => p.completa)
-      : true;
-
-    if (todosCompletos) {
-      const svcConsulta = this.#f.consulta(this.#ids.idPersonaRol);
-      const consulta = await svcConsulta.findById(this.#ids.idConsulta);
-      await svcConsulta.update(
-        consulta.idConsulta,
-        consulta.con({ fechaFin: new Date(ahora) }),
-      );
-      return this.cargar(this.#ids, e.idCpActivo);
-    }
-
-    const siguientePendiente = [...e.procedimientosPorId.values()].find(
-      (p) => !p.completa,
-    );
+    const siguientePendiente = [
+      ...(e.procedimientosPorId?.values() ?? []),
+    ].find((p) => !p.completa);
     return this.cargar(
       this.#ids,
       siguientePendiente?.cp.idConsultaProcedimiento ?? e.idCpActivo,
     );
+  }
+
+  /**
+   * @deprecated Ambigua desde que hay varios procedimientos: finaliza solo el
+   * procedimiento activo. Usar finalizarProcedimiento o finalizarConsulta.
+   */
+  finalizar(borrador, opciones) {
+    return this.finalizarProcedimiento(borrador, opciones);
+  }
+
+  /**
+   * Cierra la consulta (consulta.fecha_fin). Solo es posible cuando todos sus
+   * procedimientos están finalizados y la consulta sigue abierta.
+   * @throws {ErrorEstado}
+   */
+  async finalizarConsulta() {
+    const e = this.#exigirCarga();
+    alFinalizarConsulta(
+      this.#todosLosProcedimientosCompletos(e),
+      e.consultaFinalizada,
+    );
+
+    const ahora = this.#ahora();
+    const svcConsulta = this.#f.consulta(this.#ids.idPersonaRol);
+    const consulta = await svcConsulta.findById(this.#ids.idConsulta);
+    await svcConsulta.update(
+      consulta.idConsulta,
+      consulta.con({ fechaFin: new Date(ahora) }),
+    );
+    return this.cargar(this.#ids, e.idCpActivo);
+  }
+
+  #todosLosProcedimientosCompletos(e) {
+    return e.procedimientosPorId
+      ? [...e.procedimientosPorId.values()].every((p) => p.completa)
+      : true;
   }
 
   #ordenesInfo() {
@@ -363,6 +393,8 @@ export default class AtencionService {
     const e = this.#e;
     const fila = e.filaPor.get(idPaso);
     Object.assign(fila, cambios);
+    // El backend devuelve la fila sin su consulta_procedimiento; sin ella el PUT sale con null.
+    fila.idConsultaProcedimiento = e.cp.idConsultaProcedimiento;
     await this.#f
       .consultaProcedimientoPaso(e.cp.idConsultaProcedimiento)
       .update(fila.idConsultaProcedimientoPaso, fila);
@@ -384,12 +416,11 @@ export default class AtencionService {
   }
 
   async #sortearResponsable(e) {
-    const clinica = e.consulta.clinica;
-    const idClinica =
-      typeof clinica === "string" ? clinica : clinica?.idClinica;
+    // La consulta no tiene clínica propia: sale de su persona_rol (id_clinica).
+    const idClinica = idClinicaDeConsulta(e.consulta);
     if (!idClinica) {
       throw new Error(
-        "No se pudo determinar la clínica de la consulta para asignar el paso",
+        "No se pudo determinar la clínica de la consulta (se esperaba consulta.idPersonaRol.idClinica)",
       );
     }
     const personal = candidatosResponsable(
@@ -420,6 +451,7 @@ export default class AtencionService {
       fila.fechaFin = null;
       fila.fechaInicio = fila.fechaInicio ?? this.#ahora();
       if (idResponsable) fila.idPersonaRol = idResponsable;
+      fila.idConsultaProcedimiento = e.cp.idConsultaProcedimiento;
       await svc.update(fila.idConsultaProcedimientoPaso, fila);
     } else {
       const nueva = new ConsultaProcedimientoPaso({

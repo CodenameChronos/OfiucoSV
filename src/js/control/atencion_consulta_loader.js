@@ -56,7 +56,16 @@ export async function cargarDatosAtencion(
 
     const filaPor = new Map();
     for (const fila of filas) {
-      const id = fila.idDeProcedimientoPaso();
+      // Extracción segura del ID de la fila (soporta función, objeto anidado o propiedad directa)
+      const id =
+        typeof fila.idDeProcedimientoPaso === "function"
+          ? fila.idDeProcedimientoPaso()
+          : typeof fila.idProcedimientoPaso === "object" &&
+              fila.idProcedimientoPaso !== null
+            ? (fila.idProcedimientoPaso.idProcedimientoPaso ??
+              fila.idProcedimientoPaso.id)
+            : fila.idProcedimientoPaso;
+
       if (id && !filaPor.has(id)) filaPor.set(id, fila);
     }
     const estados = Object.fromEntries(
@@ -101,7 +110,10 @@ export async function cargarDatosAtencion(
     filaPor: seleccionado.filaPor,
     idActual: seleccionado.idActual,
     completa: seleccionado.completa,
+    // Todos los procedimientos finalizados (la consulta ya puede cerrarse)...
     consultaCompleta: listaProcs.every((p) => p.completa),
+    // ...y la consulta efectivamente cerrada (consulta.fecha_fin).
+    consultaFinalizada: consulta.fechaFin != null,
     ordenes: [],
     resultados: new Map(),
     asignables: [],
@@ -143,8 +155,21 @@ export async function _activarProcedimientoEnContexto(
   await _cargarAsignables(f, e);
 }
 
+/**
+ * Paciente de la consulta. Según el esquema es persona_rol.id_persona del
+ * persona_rol de la consulta; `consulta.paciente` solo se usa de respaldo
+ * (por si el backend ya entrega al paciente resuelto).
+ */
+function origenPaciente(consulta) {
+  const rol = consulta?.idPersonaRol;
+  if (rol !== null && typeof rol === "object" && rol.idPersona != null) {
+    return rol.idPersona;
+  }
+  return consulta?.paciente;
+}
+
 async function _cargarPaciente(f, consulta) {
-  const p = consulta.paciente;
+  const p = origenPaciente(consulta);
   if (p && typeof p === "object" && p.nombres != null) {
     return new Persona(p);
   }
