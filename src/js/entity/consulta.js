@@ -1,26 +1,4 @@
-/**
- * Tabla consulta.
- *
- * Es inmutable (Object.freeze). Se construye con `fromJSON` (alias de
- * `desdeJson`), que convierte las fechas a Date, reduce idPersonaRol a su uuid
- * y extrae la clínica y el paciente del persona_rol anidado. Para cambiar un
- * valor se usa `con()`, que devuelve una copia.
- *
- * toJSON deja fuera `clinica` y `paciente` (son datos derivados para la
- * interfaz) y envía idPersonaRol como referencia por id.
- */
 export default class Consulta {
-  /**
-   * @param {object}      datos
-   * @param {string}      datos.idConsulta
-   * @param {Date|null}   datos.fechaInicio
-   * @param {Date|null}   datos.fechaFin
-   * @param {string|null} datos.referenciaExterna
-   * @param {string|null} datos.idPersonaRol
-   * @param {string|null} [datos.observaciones]
-   * @param {object|null} [datos.clinica]
-   * @param {object|null} [datos.paciente]
-   */
   constructor({
     idConsulta = null,
     fechaInicio = null,
@@ -30,6 +8,7 @@ export default class Consulta {
     observaciones = null,
     clinica = null,
     paciente = null,
+    procedimientos = [],
   } = {}) {
     this.idConsulta = idConsulta;
     this.fechaInicio = fechaInicio;
@@ -39,6 +18,9 @@ export default class Consulta {
     this.observaciones = observaciones;
     this.clinica = clinica;
     this.paciente = paciente;
+    this.procedimientos = Array.isArray(procedimientos)
+      ? Object.freeze([...procedimientos])
+      : Object.freeze([]);
     Object.freeze(this);
   }
 
@@ -76,7 +58,26 @@ export default class Consulta {
   }
 
   // Procedimientos extraídos de observaciones como pares { titulo, descripcion }.
+  // Procedimientos reales desde consultaProcedimientoList y/o observaciones.
   get pasos() {
+    if (this.procedimientos.length > 0) {
+      const items = this.procedimientos.map((cp) => ({
+        titulo:
+          cp?.idProcedimiento?.nombre ??
+          cp?.nombreProcedimiento ??
+          "Procedimiento",
+        descripcion: cp?.observaciones ?? "",
+      }));
+
+      if (this.observaciones && this.observaciones.trim()) {
+        items.push({
+          titulo: "Indicaciones / Observaciones",
+          descripcion: this.observaciones.trim(),
+        });
+      }
+      return items;
+    }
+
     return Consulta.parsearObservaciones(this.observaciones);
   }
 
@@ -149,6 +150,10 @@ export default class Consulta {
       personaRolObj?.persona ??
       null;
 
+    const procedimientos = Array.isArray(json.consultaProcedimientoList)
+      ? json.consultaProcedimientoList
+      : [];
+
     return new Consulta({
       idConsulta: json.idConsulta,
       fechaInicio: Consulta.#convertirAFecha(json.fechaInicio),
@@ -158,6 +163,7 @@ export default class Consulta {
       observaciones: json.observaciones ?? json.Observaciones ?? null,
       clinica,
       paciente,
+      procedimientos,
     });
   }
 
