@@ -1,0 +1,69 @@
+:host {
+  display: block;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+h3 {
+  margin: 0 0 10px;
+  color: #123b4a;
+  font-size: 1.02rem;
+}
+
+.detail-section {
+  margin: 0 0 18px;
+  padding: 14px;
+  border: 1px solid #e1e9ea;
+  border-radius: 10px;
+}
+
+.info-grid {
+  --ofiuco-texto-sm: .9rem;
+  --ofiuco-color-texto-suave: #31505a;
+  --ofiuco-color-texto: #4a5f66;
+
+  display: grid;
+  gap: 6px;
+}
+
+.step {
+  --ofiuco-color-acento: #1f6f78;
+  --ofiuco-color-exito: #29976a;
+  --ofiuco-color-superficie: #f7faf9;
+  --ofiuco-color-fondo: #e3efed;
+  --ofiuco-color-borde: #d7e4e5;
+  --ofiuco-color-sobre-acento: #fff;
+  --ofiuco-color-texto: #20343d;
+  --ofiuco-color-texto-suave: #61757c;
+
+  margin: 10px 0 0;
+}
+
+.record {
+  margin-top: 8px;
+  color: #31505a;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: .82rem;
+}
+
+.record:empty {
+  display: none;
+}
+
+.muted {
+  margin: 0;
+  color: #6a7d83;
+  font-size: .82rem;
+}
+
+.empty {
+  padding: 24px 12px;
+  border: 1px dashed #cfdddf;
+  border-radius: 9px;
+  color: #73848a;
+  font-size: .84rem;
+  text-align: center;
+}

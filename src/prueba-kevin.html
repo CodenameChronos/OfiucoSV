@@ -25,8 +25,8 @@
     const app = document.querySelector("#app");
 
     function mostrarLogin() {
-      app.innerHTML = "<ofiuco-login></ofiuco-login>";
-      const login = app.querySelector("ofiuco-login");
+      const login = document.createElement("ofiuco-login");
+      app.replaceChildren(login);
 
       login.addEventListener("login-success", (evento) => {
         mostrarDashboard(evento.detail);
@@ -34,8 +34,8 @@
     }
 
     function mostrarDashboard(sesion) {
-      app.innerHTML = "<ofiuco-dashboard></ofiuco-dashboard>";
-      const dashboard = app.querySelector("ofiuco-dashboard");
+      const dashboard = document.createElement("ofiuco-dashboard");
+      app.replaceChildren(dashboard);
 
       dashboard.addEventListener("logout-requested", mostrarLogin);
       dashboard.addEventListener("consulta-selected", (evento) => {

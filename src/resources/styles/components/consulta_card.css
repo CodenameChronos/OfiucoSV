@@ -1,0 +1,69 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.consultation-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid #e0e8e9;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(18 59 74 / 3%);
+}
+
+.card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card-reference {
+  margin: 0;
+  color: #123b4a;
+  font-size: 1.02rem;
+  overflow-wrap: anywhere;
+}
+
+.state {
+  flex: 0 0 auto;
+  display: inline-flex;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #e7f5ed;
+  color: #26734e;
+  font-size: .7rem;
+  font-weight: 750;
+}
+
+.state.done {
+  background: #e8f2fb;
+  color: #28699e;
+}
+
+.card-meta {
+  --ofiuco-texto-sm: .82rem;
+  --ofiuco-color-texto-suave: #31505a;
+  --ofiuco-color-texto: #61757c;
+
+  display: grid;
+  gap: 6px;
+  margin: 13px 0;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.card-actions .button {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: .78rem;
+}

@@ -2,34 +2,18 @@ import { BaseComponent } from "../core/base-component.js";
 import { defineOnce } from "../core/define-once.js";
 import { h } from "../core/dom.js";
 import DashboardService from "../../control/dashboard_service.js";
+import { getPatientName, relationName } from "./utils/consulta-format.js";
+import "./functional/ofiuco-date-picker.js";
+import "./functional/ofiuco-pagination.js";
+import "./layout/consulta_card.js";
+import "./layout/consulta_resumen.js";
+import "./layout/ofiuco-dialog.js";
 
-const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({
-  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-}[character]));
-
-const relationName = (value, fallback) => {
-  if (typeof value === "string") return value;
-  return value?.nombre ?? value?.descripcion ?? fallback;
-};
-
-const formatDate = (value) => {
-  if (!value) return "Sin fecha";
-  const parsed = new Date(String(value).replace(/\[UTC\]$/, ""));
-  return Number.isNaN(parsed.getTime()) ? "Fecha no válida" : parsed.toLocaleString("es-SV", {
-    dateStyle: "medium", timeStyle: "short"
-  });
-};
-
-const getPatientName = (consultation) => {
-  const patient = consultation?.paciente ?? consultation?.idPaciente ?? consultation?.persona ?? null;
-  const fullName = [patient?.nombres, patient?.apellidos].filter(Boolean).join(" ").trim();
-  return fullName || consultation?.nombrePaciente || "No disponible en los datos del API";
-};
+const styleUrl = (name) =>
+  new URL(`../../../resources/styles/components/${name}`, import.meta.url).href;
 
 export class OfiucoDashboard extends BaseComponent {
-  static styleUrls = [
-    new URL("../../../resources/styles/components/dashboard.css", import.meta.url).href
-  ];
+  static styleUrls = [styleUrl("button.css"), styleUrl("dashboard.css")];
 
   constructor() {
     super();
@@ -54,13 +38,26 @@ export class OfiucoDashboard extends BaseComponent {
   }
 
   render() {
+    // Los filtros de fecha empiezan en el día de hoy (fecha local).
+    const today = this.service.fechaLocalISO(new Date());
+
     const assignmentSelect = h("select", { id: "asignacion", "aria-label": "Clínica y rol" });
-    const desde = h("input", { id: "desde", type: "date" });
-    const hasta = h("input", { id: "hasta", type: "date" });
+    const desde = h("ofiuco-date-picker", { id: "desde", label: "Desde", value: today });
+    const hasta = h("ofiuco-date-picker", { id: "hasta", label: "Hasta", value: today });
     const search = h("input", { id: "buscarPaciente", type: "search", placeholder: "Nombre o referencia", autocomplete: "off" });
     const status = h("p", { id: "status", class: "status", role: "status", "aria-live": "polite" });
     const pendingCards = h("div", { id: "pendientes", class: "cards" });
     const completedCards = h("div", { id: "finalizadas", class: "cards" });
+    const pendingPagination = h("ofiuco-pagination", {
+      id: "pending-pagination",
+      label: "Paginación de consultas pendientes",
+      "page-size": this.pendingPageSize
+    });
+    const completedPagination = h("ofiuco-pagination", {
+      id: "completed-pagination",
+      label: "Paginación de consultas finalizadas",
+      "page-size": this.completedPageSize
+    });
 
     this.shadowRoot.append(
       h("main", { class: "dashboard-shell" },
@@ -75,8 +72,8 @@ export class OfiucoDashboard extends BaseComponent {
         h("section", { class: "panel", "aria-label": "Filtros de consultas" },
           h("div", { class: "filters" },
             h("div", { class: "field wide" }, h("label", { for: "asignacion" }, "Clínica y rol"), assignmentSelect),
-            h("div", { class: "field" }, h("label", { for: "desde" }, "Desde"), desde),
-            h("div", { class: "field" }, h("label", { for: "hasta" }, "Hasta"), hasta),
+            h("div", { class: "field" }, desde),
+            h("div", { class: "field" }, hasta),
             h("div", { class: "field" }, h("label", { for: "buscarPaciente" }, "Paciente / referencia"), search),
             h("div", { class: "actions" },
               h("button", { class: "button", id: "apply", type: "button" }, "Filtrar"),
@@ -96,18 +93,15 @@ export class OfiucoDashboard extends BaseComponent {
               h("span", { class: "column-count", id: "pending-count" }, "0")
             ),
             pendingCards,
-            h("nav", {
-              class: "pagination",
-              id: "pending-pagination",
-              "aria-label": "Paginación de consultas pendientes"
-            })
+            pendingPagination
           ),
           h("section", { class: "column finalizadas", "aria-labelledby": "completed-title" },
             h("div", { class: "column-heading" },
               h("h2", { id: "completed-title" }, h("span", { class: "dot" }), "Finalizadas"),
               h("span", { class: "column-count", id: "completed-count" }, "0")
-            ), completedCards,
-            h("nav", { class: "pagination", id: "completed-pagination", "aria-label": "Paginación de consultas finalizadas" })
+            ),
+            completedCards,
+            completedPagination
           )
         ),
         h("div", { id: "dialog-root" })
@@ -120,7 +114,18 @@ export class OfiucoDashboard extends BaseComponent {
     this.shadowRoot.querySelector("#logout").addEventListener("click", () => {
       this.dispatchEvent(new CustomEvent("logout-requested", { bubbles: true, composed: true }));
     });
-    this.shadowRoot.querySelector(".columns").addEventListener("click", (event) => this.onCardAction(event));
+
+    const columns = this.shadowRoot.querySelector(".columns");
+    columns.addEventListener("ofiuco:consulta-resumen", (event) => this.mostrarResumen(event.detail.consulta));
+    columns.addEventListener("ofiuco:consulta-select", (event) => this.atender(event.detail.consulta));
+    pendingPagination.addEventListener("ofiuco:page-change", (event) => {
+      this.pendingPage = event.detail.page;
+      this.renderPendingPage();
+    });
+    completedPagination.addEventListener("ofiuco:page-change", (event) => {
+      this.completedPage = event.detail.page;
+      this.renderCompletedPage();
+    });
     search.addEventListener("keydown", (event) => {
       if (event.key === "Enter") this.cargar();
     });
@@ -176,10 +181,29 @@ export class OfiucoDashboard extends BaseComponent {
   }
 
   limpiarFiltros() {
-    this.shadowRoot.querySelector("#desde").value = "";
-    this.shadowRoot.querySelector("#hasta").value = "";
+    // "Limpiar" vuelve al estado inicial: fechas en el día de hoy.
+    const today = this.service.fechaLocalISO(new Date());
+    this.shadowRoot.querySelector("#desde").value = today;
+    this.shadowRoot.querySelector("#hasta").value = today;
     this.shadowRoot.querySelector("#buscarPaciente").value = "";
     this.cargar();
+  }
+
+  empty(message) {
+    return h("div", { class: "empty" }, message);
+  }
+
+  showEmpty(container, message) {
+    container.replaceChildren(this.empty(message));
+  }
+
+  resetPagination() {
+    this.pendingPage = 0;
+    this.completedPage = 0;
+    this.pendingConsultas = [];
+    this.completedConsultas = [];
+    this.shadowRoot.querySelector("#pending-pagination").total = 0;
+    this.shadowRoot.querySelector("#completed-pagination").total = 0;
   }
 
   async cargar() {
@@ -201,11 +225,9 @@ export class OfiucoDashboard extends BaseComponent {
 
     if (!this.seleccion?.idPersonaRol) {
       this.consultas = [];
-      this.completedConsultas = [];
-      this.completedPage = 0;
-      this.shadowRoot.querySelector("#completed-pagination").replaceChildren();
-      pending.innerHTML = '<div class="empty">No tiene asignaciones de clínica y rol disponibles.</div>';
-      completed.innerHTML = '<div class="empty">No hay consultas finalizadas.</div>';
+      this.resetPagination();
+      this.showEmpty(pending, "No tiene asignaciones de clínica y rol disponibles.");
+      this.showEmpty(completed, "No hay consultas finalizadas.");
       count.textContent = "0 consultas";
       pendingCount.textContent = "0";
       completedCount.textContent = "0";
@@ -214,8 +236,8 @@ export class OfiucoDashboard extends BaseComponent {
     }
 
     status.textContent = "Cargando consultas…";
-    pending.innerHTML = "";
-    completed.innerHTML = "";
+    pending.replaceChildren();
+    completed.replaceChildren();
 
     try {
       const consultas = await this.service.obtenerConsultas(this.seleccion.idPersonaRol, { desde, hasta });
@@ -227,11 +249,9 @@ export class OfiucoDashboard extends BaseComponent {
       if (sequence !== this.loadSequence) return;
       this.consultas = [];
       this.filteredConsultas = [];
-      this.completedConsultas = [];
-      this.completedPage = 0;
-      this.shadowRoot.querySelector("#completed-pagination").replaceChildren();
-      pending.innerHTML = '<div class="empty">No se pudieron cargar las consultas.</div>';
-      completed.innerHTML = '<div class="empty">No se pudieron cargar las consultas.</div>';
+      this.resetPagination();
+      this.showEmpty(pending, "No se pudieron cargar las consultas.");
+      this.showEmpty(completed, "No se pudieron cargar las consultas.");
       status.textContent = `No fue posible cargar las consultas: ${error.message}`;
       count.textContent = "0 consultas";
       pendingCount.textContent = "0";
@@ -242,27 +262,20 @@ export class OfiucoDashboard extends BaseComponent {
   aplicarFiltroLocal() {
     const query = this.shadowRoot.querySelector("#buscarPaciente").value.trim().toLocaleLowerCase();
 
-    this.filteredConsultas = this.consultas
-      .map((consulta, originalIndex) => ({ consulta, originalIndex }))
-      .filter(({ consulta }) => {
-        if (!query) return true;
+    this.filteredConsultas = this.consultas.filter((consulta) => {
+      if (!query) return true;
 
-        const haystack = [
-          getPatientName(consulta),
-          consulta.referenciaExterna,
-          consulta.idConsulta
-        ].filter(Boolean).join(" ").toLocaleLowerCase();
+      const haystack = [
+        getPatientName(consulta),
+        consulta.referenciaExterna,
+        consulta.idConsulta
+      ].filter(Boolean).join(" ").toLocaleLowerCase();
 
-        return haystack.includes(query);
-      });
+      return haystack.includes(query);
+    });
 
-    this.pendingConsultas = this.filteredConsultas.filter(
-      ({ consulta }) => !consulta.fechaFin
-    );
-
-    this.completedConsultas = this.filteredConsultas.filter(
-      ({ consulta }) => Boolean(consulta.fechaFin)
-    );
+    this.pendingConsultas = this.filteredConsultas.filter((consulta) => !consulta.fechaFin);
+    this.completedConsultas = this.filteredConsultas.filter((consulta) => Boolean(consulta.fechaFin));
 
     // Reiniciar ambas paginaciones al aplicar filtros.
     this.pendingPage = 0;
@@ -273,215 +286,79 @@ export class OfiucoDashboard extends BaseComponent {
 
     this.shadowRoot.querySelector("#count").textContent =
       `${this.filteredConsultas.length} ${this.filteredConsultas.length === 1 ? "consulta" : "consultas"}`;
-
-    this.shadowRoot.querySelector("#pending-count").textContent =
-      String(this.pendingConsultas.length);
-
-    this.shadowRoot.querySelector("#completed-count").textContent =
-      String(this.completedConsultas.length);
+    this.shadowRoot.querySelector("#pending-count").textContent = String(this.pendingConsultas.length);
+    this.shadowRoot.querySelector("#completed-count").textContent = String(this.completedConsultas.length);
   }
 
   renderPendingPage() {
-    const cards = this.shadowRoot.querySelector("#pendientes");
-    const pagination = this.shadowRoot.querySelector("#pending-pagination");
-
-    if (!cards || !pagination) return;
-
-    const total = this.pendingConsultas.length;
-    const pageCount = Math.max(1, Math.ceil(total / this.pendingPageSize));
-
-    this.pendingPage = Math.min(
-      Math.max(0, this.pendingPage),
-      pageCount - 1
-    );
-
-    const start = this.pendingPage * this.pendingPageSize;
-
-    const visible = this.pendingConsultas.slice(
-      start,
-      start + this.pendingPageSize
-    );
-
-    cards.innerHTML = visible.map((item) => this.card(item)).join("")
-      || '<div class="empty">No hay consultas pendientes con estos filtros.</div>';
-
-    if (total <= this.pendingPageSize) {
-      pagination.replaceChildren();
-      return;
-    }
-
-    pagination.innerHTML = `
-    <span class="pagination-info">
-      Mostrando ${start + 1}–${Math.min(start + this.pendingPageSize, total)} de ${total}
-    </span>
-
-    <div class="pagination-actions">
-      <button
-        class="button secondary"
-        type="button"
-        data-pending-page="previous"
-        ${this.pendingPage === 0 ? "disabled" : ""}
-      >
-        Anterior
-      </button>
-
-      <span class="pagination-current">
-        Página ${this.pendingPage + 1} de ${pageCount}
-      </span>
-
-      <button
-        class="button secondary"
-        type="button"
-        data-pending-page="next"
-        ${this.pendingPage >= pageCount - 1 ? "disabled" : ""}
-      >
-        Siguiente
-      </button>
-    </div>
-  `;
+    this.pendingPage = this.paintColumn({
+      cards: this.shadowRoot.querySelector("#pendientes"),
+      pagination: this.shadowRoot.querySelector("#pending-pagination"),
+      items: this.pendingConsultas,
+      page: this.pendingPage,
+      pageSize: this.pendingPageSize,
+      emptyMessage: "No hay consultas pendientes con estos filtros."
+    });
   }
 
   renderCompletedPage() {
-    const cards = this.shadowRoot.querySelector("#finalizadas");
-    const pagination = this.shadowRoot.querySelector("#completed-pagination");
-    if (!cards || !pagination) return;
-
-    const total = this.completedConsultas.length;
-    const pageCount = Math.max(1, Math.ceil(total / this.completedPageSize));
-    this.completedPage = Math.min(Math.max(0, this.completedPage), pageCount - 1);
-    const start = this.completedPage * this.completedPageSize;
-    const visible = this.completedConsultas.slice(start, start + this.completedPageSize);
-
-    cards.innerHTML = visible.map((item) => this.card(item)).join("")
-      || '<div class="empty">No hay consultas finalizadas con estos filtros.</div>';
-
-    if (total <= this.completedPageSize) {
-      pagination.replaceChildren();
-      return;
-    }
-
-    pagination.innerHTML = `
-      <span class="pagination-info">Mostrando ${start + 1}–${Math.min(start + this.completedPageSize, total)} de ${total}</span>
-      <div class="pagination-actions">
-        <button class="button secondary" type="button" data-page="previous" ${this.completedPage === 0 ? "disabled" : ""}>Anterior</button>
-        <span class="pagination-current">Página ${this.completedPage + 1} de ${pageCount}</span>
-        <button class="button secondary" type="button" data-page="next" ${this.completedPage >= pageCount - 1 ? "disabled" : ""}>Siguiente</button>
-      </div>`;
+    this.completedPage = this.paintColumn({
+      cards: this.shadowRoot.querySelector("#finalizadas"),
+      pagination: this.shadowRoot.querySelector("#completed-pagination"),
+      items: this.completedConsultas,
+      page: this.completedPage,
+      pageSize: this.completedPageSize,
+      emptyMessage: "No hay consultas finalizadas con estos filtros."
+    });
   }
 
-  card({ consulta, originalIndex }) {
-    const finished = Boolean(consulta.fechaFin);
-    const reference = consulta.referenciaExterna || consulta.idConsulta?.slice?.(0, 8) || "Sin referencia";
-    const procedures = Array.isArray(consulta.procedimientos) ? consulta.procedimientos.length : 0;
-    return `<article class="consultation-card">
-      <div class="card-top"><h3 class="card-reference">Consulta ${esc(reference)}</h3>
-      <span class="state ${finished ? "done" : ""}">${finished ? "Finalizada" : "Pendiente"}</span></div>
-      <div class="card-meta">
-        <div><strong>Paciente:</strong> ${esc(getPatientName(consulta))}</div>
-        <div><strong>Inicio:</strong> ${esc(formatDate(consulta.fechaInicio))}</div>
-        ${finished ? `<div><strong>Finalización:</strong> ${esc(formatDate(consulta.fechaFin))}</div>` : ""}
-        <div><strong>Procedimientos:</strong> ${procedures}</div>
-      </div>
-      <div class="card-actions">
-        <button class="button secondary" type="button" data-summary="${originalIndex}">Ver resumen</button>
-        ${finished ? "" : `<button class="button" type="button" data-attend="${originalIndex}">Atender consulta</button>`}
-      </div>
-    </article>`;
+  /** Pinta una página de tarjetas y sincroniza su paginador. Devuelve la página efectiva. */
+  paintColumn({ cards, pagination, items, page, pageSize, emptyMessage }) {
+    if (!cards || !pagination) return page;
+
+    const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+    const current = Math.min(Math.max(0, page), pageCount - 1);
+    const start = current * pageSize;
+    const visible = items.slice(start, start + pageSize);
+
+    cards.replaceChildren(...(visible.length
+      ? visible.map((consulta) => this.card(consulta))
+      : [this.empty(emptyMessage)]));
+
+    pagination.pageSize = pageSize;
+    pagination.total = items.length;
+    pagination.page = current;
+    return current;
   }
 
-  onCardAction(event) {
-
-    const pendingPageButton = event.target.closest("[data-pending-page]");
-
-    if (pendingPageButton && !pendingPageButton.disabled) {
-      this.pendingPage +=
-        pendingPageButton.dataset.pendingPage === "next" ? 1 : -1;
-
-      this.renderPendingPage();
-      return;
-    }
-
-    const pageButton = event.target.closest("[data-page]");
-    if (pageButton && !pageButton.disabled) {
-      this.completedPage += pageButton.dataset.page === "next" ? 1 : -1;
-      this.renderCompletedPage();
-      return;
-    }
-    const summaryButton = event.target.closest("[data-summary]");
-    const attendButton = event.target.closest("[data-attend]");
-    if (summaryButton) this.mostrarResumen(Number(summaryButton.dataset.summary));
-    if (attendButton) {
-      const consulta = this.consultas[Number(attendButton.dataset.attend)];
-      if (!consulta) return;
-      this.dispatchEvent(new CustomEvent("consulta-selected", {
-        detail: { consulta, asignacion: this.seleccion }, bubbles: true, composed: true
-      }));
-    }
+  card(consulta) {
+    const card = h("ofiuco-consulta-card");
+    card.consulta = consulta;
+    return card;
   }
 
-  mostrarResumen(index) {
-    const consulta = this.consultas[index];
+  atender(consulta) {
+    if (!consulta) return;
+    this.dispatchEvent(new CustomEvent("consulta-selected", {
+      detail: { consulta, asignacion: this.seleccion }, bubbles: true, composed: true
+    }));
+  }
+
+  mostrarResumen(consulta) {
     if (!consulta) return;
     const root = this.shadowRoot.querySelector("#dialog-root");
-    const procedures = (consulta.procedimientos ?? []).map((procedure) => {
-      const steps = (procedure.pasos ?? []).map((step) => {
-        const employee = step.idPersonaRol?.nombreCompleto
-          ?? [step.idPersonaRol?.idPersona?.nombres, step.idPersonaRol?.idPersona?.apellidos].filter(Boolean).join(" ")
-          ?? "";
-        return `<div class="step">
-          <strong>${esc(relationName(step.idProcedimientoPaso, "Paso"))}</strong>
-          <p>Estado: ${esc(step.estado ?? "No especificado")}</p>
-          <p>Inicio: ${esc(formatDate(step.fechaInicio))}${step.fechaFin ? ` · Fin: ${esc(formatDate(step.fechaFin))}` : ""}</p>
-          <p>Realizado por: ${esc(employee || "No especificado")}</p>
-          <button class="button secondary" type="button" data-step="${esc(procedure.idConsultaProcedimiento)}|${esc(step.idConsultaProcedimientoPaso)}">Ver registro del paso</button>
-          <div class="record" data-record></div>
-        </div>`;
-      }).join("") || '<p class="muted">Sin pasos registrados.</p>';
-      return `<section class="detail-section"><h3>${esc(relationName(procedure.idProcedimiento, "Procedimiento"))}</h3>${steps}</section>`;
-    }).join("") || '<div class="empty">Esta consulta no tiene procedimientos asociados.</div>';
 
-    root.innerHTML = `<div class="dialog-backdrop" data-close-backdrop>
-      <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
-        <header class="dialog-head"><div><p class="eyebrow">Resumen de consulta</p><h2 id="dialog-title">${esc(consulta.referenciaExterna || consulta.idConsulta || "Consulta")}</h2></div>
-        <button class="dialog-close" type="button" aria-label="Cerrar resumen" data-close>×</button></header>
-        <div class="dialog-body">
-          <section class="detail-section"><h3>Información general</h3>
-            <p><strong>Paciente:</strong> ${esc(getPatientName(consulta))}</p>
-            <p><strong>Inicio:</strong> ${esc(formatDate(consulta.fechaInicio))}</p>
-            <p><strong>Fin:</strong> ${esc(formatDate(consulta.fechaFin))}</p>
-            <p><strong>Estado:</strong> ${consulta.fechaFin ? "Finalizada" : "Pendiente"}</p>
-            <p><strong>Observaciones:</strong> ${esc(consulta.observaciones || "Sin observaciones")}</p>
-          </section>${procedures}
-        </div>
-      </section>
-    </div>`;
+    const resumen = h("ofiuco-consulta-resumen");
+    resumen.consulta = consulta;
+    resumen.service = this.service;
 
-    root.querySelector("[data-close]").addEventListener("click", () => root.replaceChildren());
-    root.querySelector("[data-close-backdrop]").addEventListener("click", (event) => {
-      if (event.target.hasAttribute("data-close-backdrop")) root.replaceChildren();
-    });
-    root.querySelectorAll("[data-step]").forEach((button) => {
-      button.addEventListener("click", () => this.verRegistro(button));
-    });
-    root.querySelector("[data-close]").focus();
-  }
+    const dialog = h("ofiuco-dialog", {
+      eyebrow: "Resumen de consulta",
+      heading: consulta.referenciaExterna || consulta.idConsulta || "Consulta"
+    }, resumen);
+    dialog.addEventListener("ofiuco:dialog-close", () => root.replaceChildren());
 
-  async verRegistro(button) {
-    const [procedureId, stepId] = button.dataset.step.split("|");
-    const output = button.nextElementSibling;
-    button.disabled = true;
-    output.textContent = "Consultando registro…";
-    try {
-      const record = await this.service.obtenerDetallePaso(procedureId, stepId);
-      const orders = record?.ordenExamenList ?? [];
-      output.textContent = record?.observaciones || record?.resultado || (orders.length
-        ? JSON.stringify(orders, null, 2)
-        : "No hay observaciones ni resultados registrados.");
-    } catch (error) {
-      output.textContent = `No se pudo consultar el registro: ${error.message}`;
-    } finally {
-      button.disabled = false;
-    }
+    root.replaceChildren(dialog);
   }
 }
 
