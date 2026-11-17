@@ -127,7 +127,7 @@ class SPAOrchestrator {
   }
 
   // --- HU4 (Atención de Consulta) ---
-  cargarAtencionConsulta(consulta) {
+  async cargarAtencionConsulta(consulta) {
     this.#toggleLoginButtonVisibility(false);
 
     const pageConsultaEl = document.createElement("ofiuco-page-consulta");
@@ -142,7 +142,6 @@ class SPAOrchestrator {
 
     this.#appContainer.replaceChildren(pageConsultaEl);
 
-    // Extraer el idPersonaRol de forma robusta desde la consulta o la sesión actual
     const idPersonaRol =
       (typeof consulta.idPersonaRol === "object"
         ? consulta.idPersonaRol?.idPersonaRol
@@ -150,12 +149,69 @@ class SPAOrchestrator {
       consulta.idPersonaRolPaciente ||
       this.#sesionActual?.idPersonaRol;
 
+    const empleadoId =
+      this.#sesionActual?.idPersonaRolEmpleado ||
+      this.#sesionActual?.idPersonaRol ||
+      consulta.idPersonaRolEmpleado ||
+      null;
+
+    let idConsultaProcedimientoValido = null;
+    let idProcedimientoValido = null;
+
+    // 1. Intentar primero extraerlo directamente si el objeto consulta ya los trae cargados
+    if (consulta.procedimientos && consulta.procedimientos.length > 0) {
+      const proc = consulta.procedimientos[0];
+      idConsultaProcedimientoValido =
+        proc.idConsultaProcedimiento || proc.id_consulta_procedimiento;
+      idProcedimientoValido =
+        (typeof proc.idProcedimiento === "object"
+          ? proc.idProcedimiento?.idProcedimiento
+          : proc.idProcedimiento) || proc.id_procedimiento;
+    }
+
+    // 2. Si no venían en el objeto, los consultamos mediante el servicio de la tabla intermedia
+    if (!idConsultaProcedimientoValido) {
+      try {
+        const procedimientoService = new ConsultaProcedimientoService(
+          consulta.idConsulta,
+        );
+        const procedimientosConsulta = await procedimientoService.findAll();
+
+        if (procedimientosConsulta && procedimientosConsulta.length > 0) {
+          const procAsociado = procedimientosConsulta[0];
+          idConsultaProcedimientoValido =
+            procAsociado.idConsultaProcedimiento ||
+            procAsociado.id_consulta_procedimiento;
+
+          idProcedimientoValido =
+            (typeof procAsociado.idProcedimiento === "object"
+              ? procAsociado.idProcedimiento?.idProcedimiento
+              : procAsociado.idProcedimiento) || procAsociado.id_procedimiento;
+        }
+      } catch (e) {
+        console.error("Error al consultar procedimientos de la consulta:", e);
+      }
+    }
+
+    // Validación final de seguridad
+    if (!idConsultaProcedimientoValido) {
+      alert(
+        "La consulta seleccionada no cuenta con un procedimiento válido asignado.",
+      );
+      if (this.#sesionActual) {
+        this.cargarDashboard(this.#sesionActual);
+      } else {
+        this.cargarBusquedaCitas();
+      }
+      return;
+    }
+
     pageConsultaEl.contexto = {
       idConsulta: consulta.idConsulta,
       idPersonaRol: idPersonaRol,
-      idPersonaRolEmpleado:
-        this.#sesionActual?.idPersonaRolEmpleado ??
-        this.#sesionActual?.idPersonaRol,
+      idPersonaRolEmpleado: empleadoId,
+      idConsultaProcedimiento: idConsultaProcedimientoValido,
+      idProcedimiento: idProcedimientoValido,
     };
   }
 }

@@ -329,9 +329,19 @@ export default class AtencionService {
         tieneResultado: tieneTexto(o.resultado),
       })),
     );
-    if (plan.crear.some((id) => !e.nombrePorPpe.has(id))) {
+
+    // VALIDACIÓN ESTRICTA: Verificar que cada ID a crear pertenezca exclusivamente al conjunto asignable actual
+    const permitidos = new Set([...e.nombrePorPpe.keys()]);
+    const intentoMalicioso = plan.crear.some(
+      (id) => !permitidos.has(id.toLowerCase()),
+    );
+
+    if (
+      intentoMalicioso ||
+      plan.crear.some((id) => !e.nombrePorPpe.has(id.toLowerCase()))
+    ) {
       throw new Error(
-        "Hay exámenes seleccionados que no pertenecen a este paso",
+        "Se ha detectado un intento de asignar exámenes que no corresponden a este procedimiento o paso.",
       );
     }
     return plan;

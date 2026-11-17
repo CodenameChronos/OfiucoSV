@@ -192,7 +192,25 @@ export async function _cargarOrdenes(f, e) {
 }
 
 export async function _cargarAsignables(f, e) {
-  e.asignables = await f.examenesDelPaso(e.idProcedimiento, e.idActual);
+  const todosLosAsignables = await f.examenesDelPaso(
+    e.idProcedimiento,
+    e.idActual,
+  );
+
+  // FILTRADO ESTRICTO: Asegurar que el examen pertenezca al idProcedimiento del contexto actual
+  e.asignables = todosLosAsignables.filter((a) => {
+    const procAsociado =
+      typeof a.idProcedimiento === "object"
+        ? a.idProcedimiento?.idProcedimiento
+        : a.idProcedimiento;
+    // Si el servicio no trae el idProcedimiento anidado, lo validamos mediante el mapeo del paso actual
+    return (
+      !procAsociado ||
+      String(procAsociado).toLowerCase() ===
+        String(e.idProcedimiento).toLowerCase()
+    );
+  });
+
   e.nombrePorPpe = new Map(
     e.asignables.map((a) => [
       a.idProcedimientoPasoExamen.toLowerCase(),

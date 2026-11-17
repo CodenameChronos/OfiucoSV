@@ -34,34 +34,15 @@ const stylesUrl = new URL(
 
 const esConfirmacion = (error) => error?.name === "ConfirmacionRequerida";
 const mensajeDeError = (error) =>
-  // El servicio HTTP del proyecto reporta el texto en `mensaje`; los Error estándar usan `message`.
   String(error?.mensaje || error?.message || "").trim() ||
   "Ocurrió un error inesperado.";
 const idsDe = (vista) =>
   (vista?.ordenes ?? []).map((o) => o.idProcedimientoPasoExamen);
 
-/**
- * <ofiuco-page-consulta> — pantalla de seguimiento de consulta (HU4).
- *
- * Orquesta los componentes presentacionales y el AtencionService:
- *  - `contexto` = { idPersonaRol, idConsulta, idPersonaRolEmpleado? } dispara la carga.
- *  - `servicio` permite inyectar un AtencionService (pruebas, demo). Si no se
- *    inyecta, se crea uno al cargar (importación diferida).
- *  - `terminado` es la promesa de la última operación en curso (útil en pruebas).
- *
- * Estado: la `vista` (lo guardado, que devuelve el servicio) y el `borrador`
- * (lo que el médico está editando). Cada evento de los componentes actualiza el
- * borrador con las funciones puras de atencion_consulta_examenes.js; solo
- * guardar, avanzar, retroceder y finalizar tocan el servicio, y todas devuelven
- * una vista nueva con la que se reinicia el borrador.
- *
- * Confirmaciones: si el servicio lanza ConfirmacionRequerida se muestran sus
- * avisos en un diálogo y, si el usuario acepta, se repite con { confirmado: true }.
- *
- * Emite SALIR (hacia la shell) cuando el usuario regresa al dashboard.
- */
 export class OfiucoPageConsulta extends BaseComponent {
   static styleUrls = [stylesUrl];
+
+  #selectorProc;
 
   #contexto = null;
   #servicio = null;
@@ -163,6 +144,15 @@ export class OfiucoPageConsulta extends BaseComponent {
     this.#asignador = h("ofiuco-exam-assigner");
     this.#stepper = h("ofiuco-stepper");
 
+    this.#selectorProc = h("select", {
+      class: "selector-procedimiento",
+      "aria-label": "Procedimiento activo",
+    });
+    this.#selectorProc.addEventListener("change", (evento) => {
+      const idCp = evento.target.value;
+      if (idCp) this.#ultima = this.#alCambiarProcedimiento(idCp);
+    });
+
     this.#consultaEl = h(
       "div",
       { class: "consulta" },
@@ -179,6 +169,7 @@ export class OfiucoPageConsulta extends BaseComponent {
         h(
           "section",
           { class: "paso", "aria-labelledby": "titulo-paso" },
+          this.#selectorProc,
           h("div", { class: "paso__encabezado" }, this.#titulo, this.#guardar),
           this.#notas,
           this.#resultados,
@@ -258,9 +249,6 @@ export class OfiucoPageConsulta extends BaseComponent {
     if (this.#servicio) return this.#servicio;
     const { default: AtencionService } =
       await import("../control/atencion_consulta_service.js");
-    // El empleado que atiende debe venir en el contexto. No se rellena con idPersonaRol:
-    // el servicio descarta al "empleado" que coincide con el persona_rol de la consulta
-    // y sortea un responsable al azar entre el personal de la clínica.
     this.#servicio = new AtencionService({
       idPersonaRolEmpleado: this.#contexto.idPersonaRolEmpleado ?? null,
     });
@@ -276,11 +264,14 @@ export class OfiucoPageConsulta extends BaseComponent {
     this.#pintar();
     try {
       const servicio = await this.#obtenerServicio();
-      const vista = await servicio.cargar({
-        idPersonaRol: contexto.idPersonaRol,
-        idConsulta: contexto.idConsulta,
-      });
-      if (carga !== this.#cargaId) return; // llegó un contexto más nuevo
+      const vista = await servicio.cargar(
+        {
+          idPersonaRol: contexto.idPersonaRol,
+          idConsulta: contexto.idConsulta,
+        },
+        contexto.idConsultaProcedimiento ?? null,
+      );
+      if (carga !== this.#cargaId) return;
       this.#vista = null;
       this.#seleccionado = null;
       this.#aplicarVista(vista);
@@ -293,11 +284,6 @@ export class OfiucoPageConsulta extends BaseComponent {
     this.#pintar();
   }
 
-  /**
-   * Adopta la vista que devolvió el servicio: reinicia el borrador y reconcilia
-   * la selección (la cantidad de exámenes ordenados pudo subir o bajar).
-   * @returns {boolean} true si cambió el paso actual
-   */
   #aplicarVista(vista) {
     const pasoAnterior = this.#vista?.paso?.id;
     this.#seleccionado = conciliarSeleccion(
@@ -311,6 +297,24 @@ export class OfiucoPageConsulta extends BaseComponent {
   }
 
   // ---------------------------------------------------------------- acciones
+
+  async #alCambiarProcedimiento(idCp) {
+    if (this.#ocupado || !this.#vista) return;
+    if (hayCambios(this.#borrador, this.#vista)) {
+      const descartar = await this.#dialogo.preguntar({
+        titulo: "Cambios sin guardar",
+        avisos: ["Tiene cambios sin guardar en este procedimiento."],
+        pregunta: "¿Desea descartarlos y cambiar de procedimiento?",
+        aceptar: "Descartar y cambiar",
+        cancelar: "Seguir aquí",
+      });
+      if (!descartar) {
+        this.#selectorProc.value = this.#vista.idConsultaProcedimientoActivo;
+        return;
+      }
+    }
+    await this.#ejecutar(() => this.#servicio.seleccionarProcedimiento(idCp));
+  }
 
   #alGuardar() {
     return this.#ejecutar(
@@ -328,7 +332,7 @@ export class OfiucoPageConsulta extends BaseComponent {
       const vista = await this.#conConfirmacion((o) =>
         this.#servicio.avanzar(this.#borrador, o),
       );
-      if (vista === null) return; // el usuario canceló la confirmación
+      if (vista === null) return;
 
       this.dispatchEvent(
         new CustomEvent(ConsultaEventos.SALIR, {
@@ -400,11 +404,6 @@ export class OfiucoPageConsulta extends BaseComponent {
     );
   }
 
-  /**
-   * Ejecuta una operación del servicio: bloquea la pantalla, gestiona la
-   * confirmación, reinicia el borrador con la vista nueva y avisa del resultado.
-   * Ante un error el borrador se conserva intacto.
-   */
   async #ejecutar(operacion, mensajeExito = null) {
     if (this.#ocupado || !this.#vista) return;
     this.#ocupado = true;
@@ -413,7 +412,7 @@ export class OfiucoPageConsulta extends BaseComponent {
     let cambioDePaso = false;
     try {
       const vista = await this.#conConfirmacion(operacion);
-      if (vista === null) return; // el usuario canceló
+      if (vista === null) return;
       cambioDePaso = this.#aplicarVista(vista);
       if (mensajeExito) {
         this.#toast.mostrar({ tipo: "exito", mensaje: mensajeExito });
@@ -424,7 +423,6 @@ export class OfiucoPageConsulta extends BaseComponent {
       this.#ocupado = false;
       this.#pintar();
     }
-    // Al cambiar de paso se lleva el foco al título para que se anuncie el nuevo paso.
     if (cambioDePaso) this.#titulo.focus();
   }
 
@@ -441,7 +439,6 @@ export class OfiucoPageConsulta extends BaseComponent {
     }
   }
 
-  /** Aplica una edición al borrador (ignorada en solo lectura o mientras se guarda). */
   #editar(transformar) {
     if (!this.#borrador || this.#ocupado || soloLectura(this.#vista)) return;
     this.#borrador = transformar(this.#borrador);
@@ -467,6 +464,23 @@ export class OfiucoPageConsulta extends BaseComponent {
     const borrador = this.#borrador;
     const lectura = soloLectura(vista);
     const bloqueado = lectura || this.#ocupado;
+
+    const procs = vista.procedimientos ?? [];
+    this.#selectorProc.hidden = procs.length <= 1;
+    this.#selectorProc.disabled = this.#ocupado;
+    this.#selectorProc.replaceChildren(
+      ...procs.map((p) =>
+        h(
+          "option",
+          {
+            value: p.idConsultaProcedimiento,
+            selected: p.activo,
+          },
+          `${p.nombre} (${p.pasosCompletados}/${p.totalPasos})${p.completa ? " — Finalizado" : ""}`,
+        ),
+      ),
+    );
+    this.#selectorProc.value = vista.idConsultaProcedimientoActivo;
 
     this.#paciente.model = vista.paciente;
     this.#titulo.textContent = vista.paso.nombre ?? "Paso";
@@ -499,7 +513,6 @@ export class OfiucoPageConsulta extends BaseComponent {
     this.#regresar.disabled = this.#ocupado;
   }
 
-  /** Asigna el valor solo si cambió (evita saltos del cursor al escribir). */
   #sincronizarCampo(area, valor, bloqueado) {
     const texto = valor ?? "";
     if (area.value !== texto) area.value = texto;
