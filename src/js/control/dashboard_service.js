@@ -124,13 +124,25 @@ export default class DashboardService {
               idProcedimiento,
             ).findAll();
 
+            const hayActivo = pasos.some((p) => {
+              const est = String(p.estado ?? "").toUpperCase();
+              return est === "EN_CURSO" || est === "PENDIENTE";
+            });
+
             const pasosAsignados = pasos.filter((paso) => {
               const idAsignado = this.obtenerId(
                 paso.idPersonaRol,
                 "idPersonaRol",
               );
+              if (idAsignado !== idEmpleado) return false;
 
-              return idAsignado === idEmpleado;
+              // Si la consulta ya finalizó, se muestra en la columna "Finalizadas" si participó
+              if (consulta.fechaFin) return true;
+
+              // Si está pendiente, solo mostrarla si este paso es el que está activo/en turno
+              const estado = String(paso.estado ?? "").toUpperCase();
+              if (estado === "EN_CURSO" || estado === "PENDIENTE") return true;
+              return !hayActivo && estado === "CREADO";
             });
 
             return {

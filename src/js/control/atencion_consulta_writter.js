@@ -66,11 +66,15 @@ async function guardarNotas(f, e, ids, notas) {
   if (texto(notas) === texto(actual)) return;
   const svc = f.consultaProcedimiento(ids.idConsulta);
   const fresco = await svc.findById(e.cp.idConsultaProcedimiento);
+  fresco.idConsulta = ids.idConsulta;
+  fresco.idProcedimiento = e.idProcedimiento;
   fresco.observaciones = escribirPaso(fresco.observaciones, e.idActual, {
     notas,
   });
   await svc.update(fresco.idConsultaProcedimiento, fresco);
   e.cp = fresco;
+  const proc = e.procedimientosPorId?.get(fresco.idConsultaProcedimiento);
+  if (proc) proc.cp = fresco;
 }
 
 async function guardarReferencia(f, e, ids, valor) {

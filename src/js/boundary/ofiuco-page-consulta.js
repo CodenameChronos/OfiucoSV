@@ -222,9 +222,7 @@ export class OfiucoPageConsulta extends BaseComponent {
       this.#ultima = this.#alGuardar();
     });
     escuchar(ConsultaEventos.PASO_SIGUIENTE, () => {
-      this.#ultima = this.#ejecutar((o) =>
-        this.#servicio.avanzar(this.#borrador, o),
-      );
+      this.#ultima = this.#alAvanzar();
     });
     escuchar(ConsultaEventos.PASO_ANTERIOR, () => {
       this.#ultima = this.#ejecutar((o) =>
@@ -319,6 +317,32 @@ export class OfiucoPageConsulta extends BaseComponent {
       (o) => this.#servicio.guardarCambios(this.#borrador, o),
       "Cambios guardados",
     );
+  }
+
+  async #alAvanzar() {
+    if (this.#ocupado || !this.#vista) return;
+    this.#ocupado = true;
+    this.#pintar();
+
+    try {
+      const vista = await this.#conConfirmacion((o) =>
+        this.#servicio.avanzar(this.#borrador, o),
+      );
+      if (vista === null) return; // el usuario canceló la confirmación
+
+      this.dispatchEvent(
+        new CustomEvent(ConsultaEventos.SALIR, {
+          detail: { idConsulta: this.#contexto?.idConsulta },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    } catch (error) {
+      this.#toast.mostrar({ tipo: "error", mensaje: mensajeDeError(error) });
+    } finally {
+      this.#ocupado = false;
+      this.#pintar();
+    }
   }
 
   async #alFinalizar() {

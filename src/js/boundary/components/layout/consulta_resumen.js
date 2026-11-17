@@ -2,9 +2,14 @@ import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import DashboardService from "../../../control/dashboard_service.js";
-import { formatDate, getPatientName, relationName } from "../utils/consulta-format.js";
+import {
+  formatDate,
+  getPatientName,
+  relationName,
+} from "../utils/consulta-format.js";
 import "../primitives/simple_info.js";
 import "./resume_element.js";
+import { leerPaso } from "../../../control/observaciones_service.js";
 
 const stylesUrl = new URL(
   "../../../../resources/styles/components/consulta_resumen.css",
@@ -50,7 +55,7 @@ export class OfiucoConsultaResumen extends BaseComponent {
     }
     this.#container.replaceChildren(
       this.#general(consulta),
-      ...this.#procedimientos(consulta)
+      ...this.#procedimientos(consulta),
     );
   }
 
@@ -59,41 +64,70 @@ export class OfiucoConsultaResumen extends BaseComponent {
   }
 
   #general(consulta) {
-    return h("section", { class: "detail-section" },
+    return h(
+      "section",
+      { class: "detail-section" },
       h("h3", {}, "Información general"),
-      h("div", { class: "info-grid" },
+      h(
+        "div",
+        { class: "info-grid" },
         this.#info("Paciente", getPatientName(consulta)),
         this.#info("Inicio", formatDate(consulta.fechaInicio)),
         this.#info("Fin", formatDate(consulta.fechaFin)),
         this.#info("Estado", consulta.fechaFin ? "Finalizada" : "Pendiente"),
-        this.#info("Observaciones", consulta.observaciones || "Sin observaciones")
-      )
+        this.#info(
+          "Observaciones",
+          consulta.observaciones || "Sin observaciones",
+        ),
+      ),
     );
   }
 
   #procedimientos(consulta) {
     const procedimientos = consulta.procedimientos ?? [];
     if (!procedimientos.length) {
-      return [h("div", { class: "empty" }, "Esta consulta no tiene procedimientos asociados.")];
+      return [
+        h(
+          "div",
+          { class: "empty" },
+          "Esta consulta no tiene procedimientos asociados.",
+        ),
+      ];
     }
 
     return procedimientos.map((procedimiento) => {
-      const pasos = (procedimiento.pasos ?? []).map((paso) => this.#paso(procedimiento, paso));
-      return h("section", { class: "detail-section" },
-        h("h3", {}, relationName(procedimiento.idProcedimiento, "Procedimiento")),
-        ...(pasos.length ? pasos : [h("p", { class: "muted" }, "Sin pasos registrados.")])
+      const pasos = (procedimiento.pasos ?? []).map((paso) =>
+        this.#paso(procedimiento, paso),
+      );
+      return h(
+        "section",
+        { class: "detail-section" },
+        h(
+          "h3",
+          {},
+          relationName(procedimiento.idProcedimiento, "Procedimiento"),
+        ),
+        ...(pasos.length
+          ? pasos
+          : [h("p", { class: "muted" }, "Sin pasos registrados.")]),
       );
     });
   }
 
   #paso(procedimiento, paso) {
-    const empleado = paso.idPersonaRol?.nombreCompleto
-      ?? [paso.idPersonaRol?.idPersona?.nombres, paso.idPersonaRol?.idPersona?.apellidos].filter(Boolean).join(" ")
-      ?? "";
+    const empleado =
+      paso.idPersonaRol?.nombreCompleto ??
+      [
+        paso.idPersonaRol?.idPersona?.nombres,
+        paso.idPersonaRol?.idPersona?.apellidos,
+      ]
+        .filter(Boolean)
+        .join(" ") ??
+      "";
 
     const detalle = [
       `Estado: ${paso.estado ?? "No especificado"}`,
-      `Realizado por: ${empleado || "No especificado"}`
+      `Realizado por: ${empleado || "No especificado"}`,
     ];
     if (paso.fechaFin) detalle.push(`Fin: ${formatDate(paso.fechaFin)}`);
 
@@ -103,7 +137,7 @@ export class OfiucoConsultaResumen extends BaseComponent {
       subtitulo: detalle.join(" · "),
       fecha: formatDate(paso.fechaInicio),
       accion: "Ver registro",
-      estado: paso.fechaFin ? "completado" : "pendiente"
+      estado: paso.fechaFin ? "completado" : "pendiente",
     };
 
     const salida = h("div", { class: "record" });
@@ -112,22 +146,40 @@ export class OfiucoConsultaResumen extends BaseComponent {
     // ofiuco-resume-element avisa con este evento; el resumen lo atiende aquí.
     contenedor.addEventListener("ofiuco:resume-ver-registro", (event) => {
       event.stopPropagation();
-      this.#verRegistro(salida, procedimiento.idConsultaProcedimiento, paso.idConsultaProcedimientoPaso);
+      this.#verRegistro(salida, procedimiento, paso);
     });
 
     return contenedor;
   }
 
-  async #verRegistro(salida, idProcedimiento, idPaso) {
+  async #verRegistro(salida, procedimiento, paso) {
     if (salida.getAttribute("aria-busy") === "true") return;
     salida.setAttribute("aria-busy", "true");
     salida.textContent = "Consultando registro…";
     try {
-      const record = await this.service.obtenerDetallePaso(idProcedimiento, idPaso);
+      const idPasoCatalogo =
+        typeof paso.idProcedimientoPaso === "string"
+          ? paso.idProcedimientoPaso
+          : paso.idProcedimientoPaso?.idProcedimientoPaso;
+
+      const notasPaso =
+        leerPaso(procedimiento?.observaciones, idPasoCatalogo)?.notas ?? "";
+
+      const record = await this.service.obtenerDetallePaso(
+        procedimiento.idConsultaProcedimiento,
+        paso.idConsultaProcedimientoPaso,
+      );
       const orders = record?.ordenExamenList ?? [];
-      salida.textContent = record?.observaciones || record?.resultado || (orders.length
-        ? JSON.stringify(orders, null, 2)
-        : "No hay observaciones ni resultados registrados.");
+
+      const partes = [];
+      if (notasPaso.trim()) partes.push(`Observaciones: ${notasPaso.trim()}`);
+      if (record?.resultado) partes.push(`Resultado: ${record.resultado}`);
+      if (orders.length) {
+        partes.push(`Órdenes: ${JSON.stringify(orders, null, 2)}`);
+      }
+
+      salida.textContent =
+        partes.join("\n") || "No hay observaciones ni resultados registrados.";
     } catch (error) {
       salida.textContent = `No se pudo consultar el registro: ${error.message}`;
     } finally {
