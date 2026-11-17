@@ -355,10 +355,28 @@ export class OfiucoPageConsulta extends BaseComponent {
       cancelar: "Volver",
     });
     if (!acepta) return;
-    await this.#ejecutar(
-      (o) => this.#servicio.finalizar(this.#borrador, o),
-      "Consulta finalizada",
-    );
+
+    this.#ocupado = true;
+    this.#pintar();
+    try {
+      const vista = await this.#conConfirmacion((o) =>
+        this.#servicio.finalizar(this.#borrador, o),
+      );
+      if (vista === null) return;
+
+      this.dispatchEvent(
+        new CustomEvent(ConsultaEventos.SALIR, {
+          detail: { idConsulta: this.#contexto?.idConsulta },
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    } catch (error) {
+      this.#toast.mostrar({ tipo: "error", mensaje: mensajeDeError(error) });
+    } finally {
+      this.#ocupado = false;
+      this.#pintar();
+    }
   }
 
   async #alRegresar() {

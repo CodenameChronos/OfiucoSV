@@ -5,6 +5,7 @@ import "../js/boundary/components/functional/busqueda-citas.js"; // HU1
 import "../js/boundary/components/ofiuco-login.js"; // HU2
 import "../js/boundary/components/ofiuco-dashboard.js"; // HU3
 import "../js/boundary/ofiuco-page-consulta.js"; // HU4
+import { ConsultaEventos } from "../js/boundary/core/eventos-consulta.js";
 
 class SPAOrchestrator {
   #appContainer;
@@ -131,8 +132,7 @@ class SPAOrchestrator {
 
     const pageConsultaEl = document.createElement("ofiuco-page-consulta");
 
-    // Escuchar el evento de salida que emite la página de consulta para regresar
-    pageConsultaEl.addEventListener("salir", () => {
+    pageConsultaEl.addEventListener(ConsultaEventos.SALIR, () => {
       if (this.#sesionActual) {
         this.cargarDashboard(this.#sesionActual);
       } else {
