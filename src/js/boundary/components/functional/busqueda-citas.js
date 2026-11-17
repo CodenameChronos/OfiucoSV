@@ -25,6 +25,14 @@ const esEntidad = (valor) => valor !== null && typeof valor === "object";
 const idDe = (fk, clave) =>
   esEntidad(fk) ? (fk[clave] ?? null) : (fk ?? null);
 
+/** Devuelve la fecha local actual en formato YYYY-MM-DD para <input type="date">. */
+function fechaHoyLocal() {
+  const hoy = new Date();
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoy.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
 /**
  * Normaliza fechas provenientes de Jakarta JSON-B (ej. "2026-10-29T16:26:54Z[UTC]")
  * eliminando el sufijo "[UTC]" para que Date() de JavaScript las parsee correctamente.
@@ -112,6 +120,20 @@ export class BusquedaCitas extends BaseComponent {
       label: "Tipo Doc",
       placeholder: "Seleccione...",
       "min-chars": "0",
+    });
+
+    const hoy = fechaHoyLocal();
+
+    this.#dpDesde = h("ofiuco-date-picker", {
+      label: "Desde",
+      value: hoy,
+      "max-date": hoy,
+    });
+
+    this.#dpHasta = h("ofiuco-date-picker", {
+      label: "Hasta",
+      value: hoy,
+      "min-date": hoy,
     });
 
     const numDocId = `num-doc-${Math.random().toString(36).slice(2, 8)}`;
@@ -393,7 +415,7 @@ export class BusquedaCitas extends BaseComponent {
 
       // 1. Obtener documentos desde la ruta real de DocumentoResource: persona/{uuid}/documento
       const documentos = await this.#obtenerColeccionRaiz(
-        "persona/00000000-0000-0000-0000-000000000000/documento",
+        `persona/00000000-0000-0000-0000-000000000000/documento?idTipoDocumento=${encodeURIComponent(idTipoDocumento)}&valor=${encodeURIComponent(numeroDocumento)}`,
       );
 
       const docCoincidente = documentos.find((d) => {
