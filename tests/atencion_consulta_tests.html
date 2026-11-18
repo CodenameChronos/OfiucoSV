@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pruebas unitarias · Atención de consulta</title>
+    <link rel="stylesheet" href="./js/lib/mocha/mocha.css" />
+  </head>
+  <body>
+    <div id="mocha"></div>
+    <script src="./js/lib//mocha/mocha.js"></script>
+
+    <script type="importmap">
+      { "imports": { "@service/": "/src/js/control/" } }
+    </script>
+    <script>
+      // Interfaz TDD: suite / test / setup / teardown
+      mocha.setup({ ui: "tdd" });
+    </script>
+
+    <script type="module">
+      const archivos = [
+        "./js/control/atencion_consulta_responsable_test.js",
+        "./js/control/atencion_consulta_mapper_test.js",
+        "./js/control/atencion_consulta_service_test.js",
+      ];
+
+      const cargas = await Promise.allSettled(archivos.map((a) => import(a)));
+
+      // Si un archivo no se puede importar (ruta mal escrita, error de sintaxis),
+      // se muestra como una prueba fallida en lugar de romper todo el runner.
+      cargas.forEach((carga, i) => {
+        if (carga.status === "rejected") {
+          suite(`Carga de ${archivos[i]}`, () => {
+            test("se importa sin errores", () => {
+              throw carga.reason;
+            });
+          });
+        }
+      });
+
+      mocha.run();
+    </script>
+  </body>
+</html>

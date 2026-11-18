@@ -11,10 +11,21 @@ import {
 } from "./estado_paso.js";
 import { calcularEdad } from "./reglas_consulta.js";
 
-/** Normaliza un id para compararlo (minúsculas, nunca null). */
+/**
+ * Normaliza un id para compararlo (minúsculas, nunca null).
+ *
+ * @param {*} id
+ * @returns {string}
+ */
 const clave = (id) => String(id ?? "").toLowerCase();
 
-/** Extrae el UUID de un idPersonaRol ya sea string u objeto anidado. */
+/**
+ * Extrae el UUID de un `idPersonaRol`, ya sea que venga como texto o como
+ * objeto anidado (`{ idPersonaRol }` o `{ id }`).
+ *
+ * @param {string|{idPersonaRol?: string, id?: string}|null|undefined} valor
+ * @returns {string|null} Id en minúsculas, o `null` si no hay valor.
+ */
 function obtenerIdRol(valor) {
   if (!valor) return null;
   if (typeof valor === "string") return clave(valor);
@@ -24,6 +35,31 @@ function obtenerIdRol(valor) {
   return clave(valor);
 }
 
+/**
+ * Construye la vista de la pantalla de consulta a partir del contexto.
+ *
+ * Qué arma:
+ *  - `examenes`: catálogo asignable del paso actual, ordenado por nombre,
+ *    con la marca `ordenado` según las órdenes ya existentes.
+ *  - `procedimientos`: solo los que el usuario puede ver, es decir, el
+ *    activo y los "propios" (ver {@link esProcedimientoPropio}). Los ajenos
+ *    se descartan.
+ *  - `quedanOtrosProcedimientos`: hay algún procedimiento visible, distinto
+ *    del activo, que aún no está completo.
+ *  - `paciente`: datos básicos, nombre completo y edad calculada.
+ *  - `pasos`: todos los pasos del procedimiento activo con su estado
+ *    (si no hay fila de avance, el estado es `Estado.CREADO`).
+ *  - `paso`: paso actual, su posición (`numero` de `total`) y qué acciones
+ *    permite el estado (editar, avanzar, retroceder, finalizar).
+ *  - `ordenes`: órdenes con su resultado (`null` si no tienen), solo las
+ *    que tienen `idPpe`.
+ *
+ * @param {import("./atencion_service.js").EstadoContexto & {idPersonaRolEmpleado?: (string|Object)}} e
+ *   Contexto de atención. `idPersonaRolEmpleado` es el persona_rol del empleado de la sesión.
+ * @param {() => ContextoPaso} contextoPasoFn Devuelve el estado del paso actual y si hay pasos vecinos.
+ * @param {() => OrdenInfo[]} ordenesInfoFn Devuelve las órdenes del paso actual ya resumidas.
+ * @returns {Object} Vista plana lista para la pantalla (ver descripción de campos arriba).
+ */
 export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
   const { estado, haySiguiente, hayAnterior } = contextoPasoFn();
   const p = e.paciente;
@@ -58,7 +94,6 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
     }),
   );
 
-  // FILTRADO ESTRICTO: Solo mostrar procedimientos cuyo paso actual pertenezca al usuario de turno o ya estén finalizados
   const procedimientos = [...(e.procedimientosPorId?.values() ?? [])]
     .map((proc, idx) => {
       const completados = proc.orden.filter(
@@ -76,7 +111,6 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
         propio: esProcedimientoPropio(proc, e.idPersonaRolEmpleado),
       };
     })
-    // Los ajenos ni siquiera salen del servicio; el activo siempre se conserva.
     .filter((p) => p.activo || p.propio);
 
   const quedanOtrosProcedimientos = procedimientos.some(
@@ -144,7 +178,17 @@ export function construirVista(e, contextoPasoFn, ordenesInfoFn) {
   };
 }
 
-/** El procedimiento está "En curso" en su paso actual y ese paso es del empleado de la sesión. */
+/**
+ * Indica si un procedimiento es "propio" del empleado de la sesión: su paso
+ * actual no está finalizado (está en curso) y su responsable es ese empleado.
+ *
+ * Si no se conoce al empleado, devuelve `false`.
+ *
+ * @param {import("./atencion_service.js").ProcedimientoCargado} proc Procedimiento ya cargado en el contexto.
+ * @param {string|{idPersonaRol?: string, id?: string}|null|undefined} idPersonaRolEmpleado
+ *   persona_rol del empleado de la sesión (texto u objeto anidado).
+ * @returns {boolean}
+ */
 export function esProcedimientoPropio(proc, idPersonaRolEmpleado) {
   const idEmpleado = obtenerIdRol(idPersonaRolEmpleado);
   if (!idEmpleado) return false;

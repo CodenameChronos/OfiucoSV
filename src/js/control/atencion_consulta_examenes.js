@@ -1,53 +1,66 @@
 /**
- * @file Lógica pura de la zona de exámenes de la pantalla de consulta (HU4).
+ * Normaliza un id para compararlo: minúsculas y nunca `null`/`undefined`.
  *
- * Regla de negocio de la pantalla:
- *  - El panel derecho (asignador) trabaja sobre el BORRADOR: puede tener
- *    exámenes aún sin guardar.
- *  - La lista izquierda (resultados) muestra SOLO los exámenes ya ordenados,
- *    es decir `vista.ordenes`, lo que existe tras guardar. Si al guardar la
- *    cantidad sube o baja, la lista cambia y la selección se reconcilia.
- *
- * Todo son funciones puras (sin DOM ni red) para poder probarlas aisladas y
- * mantener PageConsulta delgada. Los ids se comparan siempre en minúsculas,
- * igual que el AtencionService.
- *
- * @typedef {{resultado?: string, interpretacion?: string}} DatosResultado
- * @typedef {Object} Borrador
- * @property {string} [referenciaExterna]
- * @property {string} [notas]
- * @property {string[]} examenes ids (idProcedimientoPasoExamen) seleccionados
- * @property {Record<string, DatosResultado>} resultados por id de examen
+ * @param {*} id Id a normalizar (cualquier valor; se convierte a texto).
+ * @returns {string} Id en minúsculas, o `""` si el valor era `null`/`undefined`.
+ * @example
+ * clave("ABC-123"); // "abc-123"
+ * clave(null);      // ""
  */
-
-/** Normaliza un id para compararlo (minúsculas, nunca null). */
 export const clave = (id) => String(id ?? "").toLowerCase();
 
+/**
+ * Convierte cualquier valor a texto sin espacios en los extremos.
+ * Se usa para comparar campos de texto ignorando espacios sobrantes.
+ *
+ * @param {*} valor
+ * @returns {string}
+ */
 const texto = (valor) => String(valor ?? "").trim();
 
-/** Normaliza las llaves de un mapa de resultados. */
+/**
+ * Devuelve una copia del mapa de resultados con las llaves normalizadas
+ * (minúsculas), para poder buscar por id sin importar cómo vino escrito.
+ *
+ * @param {Record<string, DatosResultado>} [resultados={}]
+ * @returns {Record<string, DatosResultado>}
+ */
 function normalizarResultados(resultados = {}) {
   return Object.fromEntries(
     Object.entries(resultados).map(([id, datos]) => [clave(id), datos]),
   );
 }
 
-/** `true` si la pantalla no debe permitir edición (paso cerrado o consulta completa). */
+/**
+ * Indica si la pantalla debe bloquear la edición.
+ * Es solo lectura cuando el paso no es editable o la consulta está completa.
+ *
+ * @param {Vista} vista
+ * @returns {boolean} `true` si no se permite editar.
+ */
 export function soloLectura(vista) {
   return !vista.paso?.editable || Boolean(vista.completa);
 }
 
 /**
- * Qué examen queda seleccionado tras recargar la lista de órdenes.
- *  - Si el seleccionado sigue existiendo, se conserva.
- *  - Si desapareció, se toma el que ocupe su posición anterior (o el último).
- *  - Si no había selección válida, el primero.
- *  - Sin órdenes: null.
+ * Decide qué examen queda seleccionado tras recargar la lista de órdenes.
  *
- * @param {string[]} idsAnteriores ids de la lista antes de recargar
- * @param {string|null} seleccionado id seleccionado antes de recargar
- * @param {string[]} idsNuevos ids de la lista después de recargar
- * @returns {string|null}
+ * Reglas, en orden:
+ *  1. Sin órdenes nuevas: `null`.
+ *  2. Si el seleccionado sigue existiendo, se conserva.
+ *  3. Si desapareció, se toma el que ocupe su posición anterior
+ *     (o el último, si la lista quedó más corta).
+ *  4. Si no había una selección válida, el primero.
+ *
+ * @param {string[]} idsAnteriores Ids de la lista antes de recargar.
+ * @param {string|null} seleccionado Id seleccionado antes de recargar.
+ * @param {string[]} idsNuevos Ids de la lista después de recargar.
+ * @returns {string|null} Id (en minúsculas) a seleccionar, o `null` si no hay órdenes.
+ * @example
+ * // El seleccionado "b" fue eliminado: se toma el que quedó en su posición.
+ * conciliarSeleccion(["a", "b", "c"], "b", ["a", "c"]); // "c"
+ * // Era el último y se eliminó: se toma el nuevo último.
+ * conciliarSeleccion(["a", "b"], "b", ["a"]);           // "a"
  */
 export function conciliarSeleccion(idsAnteriores, seleccionado, idsNuevos) {
   const nuevos = idsNuevos.map(clave);
@@ -62,7 +75,11 @@ export function conciliarSeleccion(idsAnteriores, seleccionado, idsNuevos) {
 }
 
 /**
- * Borrador inicial (o reiniciado tras guardar) a partir de la vista.
+ * Construye el borrador inicial (o el reiniciado tras guardar) a partir de la
+ * vista guardada. El borrador resultante refleja exactamente lo que hay en el
+ * servidor, por lo que {@link hayCambios} devolverá `false` sobre él.
+ *
+ * @param {Vista} vista
  * @returns {Borrador}
  */
 export function borradorDesdeVista(vista) {
@@ -83,7 +100,21 @@ export function borradorDesdeVista(vista) {
   };
 }
 
-/** `true` si el borrador difiere de lo guardado (habilita "Guardar cambios"). */
+/**
+ * Indica si el borrador difiere de lo guardado (habilita "Guardar cambios").
+ *
+ * Compara, ignorando espacios en los extremos y mayúsculas en los ids:
+ *  - `referenciaExterna` y `notas`.
+ *  - El conjunto de exámenes (se agregó o se quitó alguno).
+ *  - `resultado` e `interpretacion` de cada examen ya guardado.
+ *
+ * Los resultados de exámenes que ya no están guardados no se comparan:
+ * lo relevante para ellos es que el examen se agregó o se quitó.
+ *
+ * @param {Borrador} borrador Estado actual del borrador.
+ * @param {Vista} vista Estado guardado contra el que se compara.
+ * @returns {boolean} `true` si hay al menos un cambio sin guardar.
+ */
 export function hayCambios(borrador, vista) {
   const base = borradorDesdeVista(vista);
 
@@ -108,10 +139,17 @@ export function hayCambios(borrador, vista) {
 }
 
 /**
- * Modelo de la lista de resultados (izquierda): solo exámenes ya ordenados.
- *  - quitando: el examen salió del borrador y se eliminará al guardar.
- *  - tieneResultado: se calcula sobre el borrador, así el marcador responde al tipear.
- *  - pendientes: exámenes del borrador que aún no tienen orden (se crean al guardar).
+ * Construye el modelo de la lista de resultados (panel izquierdo).
+ * Muestra solo exámenes ya ordenados; lo agregado en el borrador y aún no
+ * guardado no aparece como ítem, solo se cuenta en `pendientes`.
+ *
+ * `tieneResultado` se calcula sobre el borrador, de modo que el marcador
+ * responde mientras el usuario escribe.
+ *
+ * @param {Vista} vista Estado guardado.
+ * @param {Borrador} borrador Estado en edición.
+ * @param {string|null} seleccionado Id del examen seleccionado actualmente.
+ * @returns {ModeloResultados}
  */
 export function modeloResultados(vista, borrador, seleccionado) {
   const enBorrador = new Set((borrador.examenes ?? []).map(clave));
@@ -148,7 +186,14 @@ export function modeloResultados(vista, borrador, seleccionado) {
   };
 }
 
-/** Modelo del panel derecho: catálogo del paso y selección del borrador. */
+/**
+ * Construye el modelo del panel derecho (asignador): el catálogo de exámenes
+ * del paso y la selección actual del borrador.
+ *
+ * @param {Vista} vista Estado guardado (aporta el catálogo).
+ * @param {Borrador} borrador Estado en edición (aporta la selección).
+ * @returns {ModeloAsignador}
+ */
 export function modeloAsignador(vista, borrador) {
   return {
     catalogo: (vista.examenes ?? []).map((examen) => ({
@@ -161,7 +206,14 @@ export function modeloAsignador(vista, borrador) {
   };
 }
 
-/** Devuelve un borrador nuevo con el examen agregado (sin duplicar). */
+/**
+ * Devuelve un borrador nuevo con el examen agregado. Es idempotente: si el
+ * examen ya estaba seleccionado, no se duplica.
+ *
+ * @param {Borrador} borrador
+ * @param {string} id Id del examen a agregar (se normaliza).
+ * @returns {Borrador} Borrador nuevo; el original no se modifica.
+ */
 export function agregarExamen(borrador, id) {
   const idNormalizado = clave(id);
   const actuales = (borrador.examenes ?? []).map(clave);
@@ -170,7 +222,15 @@ export function agregarExamen(borrador, id) {
   return { ...borrador, examenes: [...actuales, idNormalizado] };
 }
 
-/** Devuelve un borrador nuevo sin el examen. Conserva su texto por si se vuelve a agregar. */
+/**
+ * Devuelve un borrador nuevo sin el examen en la selección.
+ * Conserva el texto ya escrito en `resultados`, por si el usuario vuelve a
+ * agregarlo antes de guardar.
+ *
+ * @param {Borrador} borrador
+ * @param {string} id Id del examen a quitar (se normaliza).
+ * @returns {Borrador} Borrador nuevo; el original no se modifica.
+ */
 export function quitarExamen(borrador, id) {
   const idNormalizado = clave(id);
   return {
@@ -183,7 +243,17 @@ export function quitarExamen(borrador, id) {
 
 /**
  * Devuelve un borrador nuevo con un campo del resultado actualizado.
- * @param {"resultado"|"interpretacion"} campo
+ * Si el examen aún no tenía entrada en `resultados`, se crea con ambos
+ * campos vacíos antes de aplicar el valor.
+ *
+ * @param {Borrador} borrador
+ * @param {string} id Id del examen (se normaliza).
+ * @param {"resultado"|"interpretacion"} campo Campo a actualizar.
+ * @param {string} valor Nuevo valor del campo.
+ * @returns {Borrador} Borrador nuevo; el original no se modifica.
+ * @example
+ * const b2 = escribirResultado(borrador, "ABC", "resultado", "Normal");
+ * b2.resultados.abc; // { resultado: "Normal", interpretacion: "" }
  */
 export function escribirResultado(borrador, id, campo, valor) {
   const idNormalizado = clave(id);
