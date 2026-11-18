@@ -22,6 +22,7 @@ export class TarjetaCita extends BaseComponent {
   #horaEl;
   #clinicaEl;
   #procedimientosEl;
+  #procedimientos = [];
 
   get consulta() {
     return this.#consulta;
@@ -38,6 +39,15 @@ export class TarjetaCita extends BaseComponent {
 
   set clinicaNombre(value) {
     this.#clinicaNombre = String(value ?? "");
+    if (this.rendered) this.#pintar();
+  }
+
+  get procedimientos() {
+    return this.#procedimientos;
+  }
+
+  set procedimientos(value) {
+    this.#procedimientos = Array.isArray(value) ? value : [];
     if (this.rendered) this.#pintar();
   }
 
@@ -100,8 +110,8 @@ export class TarjetaCita extends BaseComponent {
       "Clínica asignada";
     this.#clinicaEl.textContent = nombreClinica;
 
-    const pasos = Array.isArray(c.pasos) ? c.pasos : [];
-    if (pasos.length === 0) {
+    const nombres = this.#procedimientos;
+    if (nombres.length === 0) {
       this.#procedimientosEl.replaceChildren(
         h(
           "p",
@@ -115,15 +125,11 @@ export class TarjetaCita extends BaseComponent {
     const lista = h(
       "ul",
       { class: "procedimientos-lista" },
-      ...pasos.map((paso) =>
+      ...nombres.map((nombre) =>
         h(
           "li",
           { class: "procedimiento-item" },
-          h("span", { class: "procedimiento-titulo" }, paso.titulo),
-          // Solución: Usar un arreglo vacío en lugar de "null" si no hay descripción
-          ...(paso.descripcion
-            ? [h("p", { class: "procedimiento-descripcion" }, paso.descripcion)]
-            : []),
+          h("span", { class: "procedimiento-titulo" }, nombre),
         ),
       ),
     );

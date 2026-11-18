@@ -1,4 +1,5 @@
 // Importaciones de componentes de layout y vistas (HU1, HU2, HU3 y HU4)
+import "./boundary/components/utils/ofiuco-install-button.js";
 import "../js/boundary/components/layout/ofiuco-header.js";
 import "../js/boundary/components/layout/ofiuco-footer.js";
 import "../js/boundary/components/functional/busqueda-citas.js"; // HU1

@@ -8,36 +8,12 @@
     <link rel="stylesheet" href="./resources/styles/components/tokens.css" />
     <link rel="stylesheet" href="./resources/styles/palette.css" />
     <link rel="stylesheet" href="./resources/styles/main.css" />
-    <style>
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background: #f4f8f9;
-        display: flex;
-        flex-direction: column;
-      }
-      #app {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-    </style>
   </head>
   <body>
-    <ofiuco-header></ofiuco-header>
+    <ofiuco-header> </ofiuco-header>
+    <ofiuco-install-button></ofiuco-install-button>
     <main id="OfiucoSV" aria-live="polite"></main>
     <ofiuco-footer></ofiuco-footer>
     <script type="module" src="./js/ofiuco-spa-orquestador.js"></script>
-
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("./serviceWorker.js")
-            .then((reg) => console.log("SW registrado:", reg.scope))
-            .catch((err) => console.error("Error registrando SW:", err));
-        });
-      }
-    </script>
   </body>
 </html>

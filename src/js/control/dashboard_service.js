@@ -139,8 +139,8 @@ export default class DashboardService {
               // Consulta finalizada: se muestra en "Finalizadas" si participó
               if (consulta.fechaFin) return true;
 
-              // Solo pasos En curso
-              return normalizarEstado(paso.estado) === "ENCURSO";
+              const estado = normalizarEstado(paso.estado);
+              return estado === "ENCURSO" || estado === "CREADO";
             });
 
             return {

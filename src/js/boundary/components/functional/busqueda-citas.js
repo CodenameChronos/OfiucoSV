@@ -7,6 +7,7 @@ import "./tarjeta-cita.js";
 import TipoDocumentoService from "../../../control/tipoDocumento_service.js";
 import ClinicaService from "../../../control/clinica_service.js";
 import ConsultaService from "../../../control/consulta_service.js";
+import ConsultaProcedimientoService from "../../../control/consultaProcedimiento_service.js";
 import Consulta from "../../../entity/consulta.js";
 import PersonaService from "../../../control/persona_service.js";
 import PersonaRolService from "../../../control/personaRol_service.js";
@@ -80,6 +81,8 @@ export class BusquedaCitas extends BaseComponent {
   #personaService;
   #personaRolFactory;
   #documentoFactory;
+  #consultaProcedimientoFactory;
+  #procsPorConsulta = new Map();
 
   #acTipoDoc;
   #inputNumDoc;
@@ -101,6 +104,8 @@ export class BusquedaCitas extends BaseComponent {
     personaService = new PersonaService(),
     personaRolFactory = (idPersona) => new PersonaRolService(idPersona),
     documentoFactory = (idPersona) => new DocumentoService(idPersona),
+    consultaProcedimientoFactory = (idConsulta) =>
+      new ConsultaProcedimientoService(idConsulta),
   } = {}) {
     super();
     this.#tipoDocumentoService = tipoDocumentoService;
@@ -109,6 +114,7 @@ export class BusquedaCitas extends BaseComponent {
     this.#personaService = personaService;
     this.#personaRolFactory = personaRolFactory;
     this.#documentoFactory = documentoFactory;
+    this.#consultaProcedimientoFactory = consultaProcedimientoFactory;
   }
 
   /** Promesa de la carga de catálogos (útil en pruebas y para reintentar). */
@@ -357,6 +363,34 @@ export class BusquedaCitas extends BaseComponent {
     }
   }
 
+  async #cargarProcedimientos(consultas) {
+    this.#procsPorConsulta.clear();
+    await Promise.all(
+      consultas.map(async (c) => {
+        const clave = String(c.idConsulta);
+        try {
+          const cps = await this.#consultaProcedimientoFactory(
+            c.idConsulta,
+          ).findAll();
+          this.#procsPorConsulta.set(
+            clave,
+            cps.map(
+              (cp) =>
+                cp.idProcedimiento?.nombre ?? cp.nombre ?? "Procedimiento",
+            ),
+          );
+        } catch (error) {
+          console.error(
+            "No se pudieron cargar los procedimientos de",
+            clave,
+            error,
+          );
+          this.#procsPorConsulta.set(clave, []);
+        }
+      }),
+    );
+  }
+
   async buscar() {
     const numeroDocumento = this.#inputNumDoc.value.trim();
 
@@ -477,6 +511,8 @@ export class BusquedaCitas extends BaseComponent {
           return true;
         });
 
+      await this.#cargarProcedimientos(filtradas);
+      this.mostrarResultados(filtradas);
       this.mostrarResultados(filtradas);
     } catch (error) {
       console.error("Error al consultar citas médicas:", error);
@@ -508,6 +544,8 @@ export class BusquedaCitas extends BaseComponent {
     const tarjetas = consultas.map((consulta) => {
       const card = h("tarjeta-cita");
       card.clinicaNombre = this.#nombreClinicaDe(consulta);
+      card.procedimientos =
+        this.#procsPorConsulta.get(String(consulta.idConsulta)) ?? [];
       card.consulta = consulta;
       return card;
     });
