@@ -8,6 +8,9 @@ const cacheFiles = [
   "./resources/styles/main.css",
   "./resources/styles/palette.css",
   "./resources/styles/components/page_consulta.css",
+  "./resources/styles/login.css",
+  "./resources/styles/login_button.css",
+  "./resources/styles/login_card.css",
   "./resources/img/icons/galeno-17-09-2026.svg",
   "./resources/img/icons/galeno-06-10-2026.svg",
 ];
