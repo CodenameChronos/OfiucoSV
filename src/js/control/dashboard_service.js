@@ -4,6 +4,11 @@ import ConsultaProcedimientoPasoService from "./consultaProcedimientoPaso_servic
 import PersonaService from "./persona_service.js";
 import PersonaRolService from "./personaRol_service.js";
 
+const normalizarEstado = (estado) =>
+  String(estado ?? "")
+    .toUpperCase()
+    .replace(/[\s_]/g, "");
+
 export default class DashboardService {
   obtenerId(valor, propiedad) {
     if (!valor) return null;
@@ -124,14 +129,6 @@ export default class DashboardService {
               idProcedimiento,
             ).findAll();
 
-            const hayActivo = pasos.some((p) => {
-              // Normalizamos: pasamos a mayúsculas y removemos espacios o guiones bajos (_ / )
-              const est = String(p.estado ?? "")
-                .toUpperCase()
-                .replace(/[\s_]/g, "");
-              return est === "ENCURSO" || est === "PENDIENTE";
-            });
-
             const pasosAsignados = pasos.filter((paso) => {
               const idAsignado = this.obtenerId(
                 paso.idPersonaRol,
@@ -139,15 +136,11 @@ export default class DashboardService {
               );
               if (idAsignado !== idEmpleado) return false;
 
-              // Si la consulta ya finalizó, se muestra en la columna "Finalizadas" si participó
+              // Consulta finalizada: se muestra en "Finalizadas" si participó
               if (consulta.fechaFin) return true;
 
-              // Normalización robusta para aceptar "En curso", "EN_CURSO", "en curso", etc.
-              const estado = String(paso.estado ?? "")
-                .toUpperCase()
-                .replace(/[\s_]/g, "");
-              if (estado === "ENCURSO" || estado === "PENDIENTE") return true;
-              return !hayActivo && estado === "CREADO";
+              // Solo pasos En curso
+              return normalizarEstado(paso.estado) === "ENCURSO";
             });
 
             return {
