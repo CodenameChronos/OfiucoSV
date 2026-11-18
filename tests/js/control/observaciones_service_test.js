@@ -1,4 +1,5 @@
-import * as chai from "../../lib/chai/index.js";
+import * as chai from "../lib/chai/index.js";
+const { expect } = chai;
 import {
   leerTodos,
   leerPaso,
