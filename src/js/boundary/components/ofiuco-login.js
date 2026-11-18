@@ -30,7 +30,8 @@ export class OfiucoLogin extends BaseComponent {
    * @type {string[]}
    */
   static styleUrls = [
-    new URL("../../../resources/styles/components/login.css", import.meta.url).href
+    new URL("../../../resources/styles/components/login.css", import.meta.url)
+      .href,
   ];
 
   /**
@@ -57,7 +58,7 @@ export class OfiucoLogin extends BaseComponent {
       label: "Tipo de documento",
       placeholder: "Seleccione un tipo de documento",
       required: true,
-      "min-chars": "0"
+      "min-chars": "0",
     });
 
     const numeroDocumento = h("input", {
@@ -68,39 +69,52 @@ export class OfiucoLogin extends BaseComponent {
       required: true,
       maxlength: "255",
       placeholder: "Ingrese su número de documento",
-      "aria-describedby": "status"
+      "aria-describedby": "status",
     });
 
     const status = h("p", {
       id: "status",
       class: "status",
       role: "alert",
-      "aria-live": "polite"
+      "aria-live": "polite",
     });
 
-    const button = h("button", {
-      class: "submit",
-      type: "submit"
-    }, "Acceder");
+    const button = h(
+      "button",
+      {
+        class: "submit",
+        type: "submit",
+      },
+      "Acceder",
+    );
 
-    const form = h("form", {},
+    const form = h(
+      "form",
+      {},
       h("div", { class: "field" }, tipoDocumento),
-      h("div", { class: "field" },
+      h(
+        "div",
+        { class: "field" },
         h("label", { for: "numero" }, "Número de documento"),
-        numeroDocumento
+        numeroDocumento,
       ),
       button,
-      status
+      status,
     );
 
     this.shadowRoot.append(
-      h("section", { class: "login-shell", "aria-labelledby": "login-title" },
+      h(
+        "section",
+        { class: "login-shell", "aria-labelledby": "login-title" },
         h("p", { class: "eyebrow" }, "GalenoSV · Portal del personal"),
         h("h1", { id: "login-title" }, "Bienvenido"),
-        h("p", { class: "subtitle" }, "Accede con el documento registrado en el sistema."),
+        h(
+          "p",
+          { class: "subtitle" },
+          "Accede con el documento registrado en el sistema.",
+        ),
         form,
-        h("p", { class: "hint" }, "El acceso comprueba el documento y las asignaciones de empleado registradas.")
-      )
+      ),
     );
 
     tipoDocumento.addEventListener("option-selected", (event) => {
@@ -135,7 +149,7 @@ export class OfiucoLogin extends BaseComponent {
         status.textContent = "No hay tipos de documento activos disponibles.";
       }
     } catch (error) {
-      status.textContent = `No se pudieron cargar los tipos de documento: ${error.message}`;
+      status.textContent = `No se pudieron cargar los tipos de documento, verifique su conexion`;
     } finally {
       this.cargandoTipos = false;
     }
@@ -174,13 +188,15 @@ export class OfiucoLogin extends BaseComponent {
     try {
       const resultado = await this.service.autenticar({
         idTipoDocumento: this.tipoDocumentoSeleccionado.idTipoDocumento,
-        numeroDocumento: numeroDocumento.value.trim()
+        numeroDocumento: numeroDocumento.value.trim(),
       });
-      this.dispatchEvent(new CustomEvent("login-success", {
-        detail: resultado,
-        bubbles: true,
-        composed: true
-      }));
+      this.dispatchEvent(
+        new CustomEvent("login-success", {
+          detail: resultado,
+          bubbles: true,
+          composed: true,
+        }),
+      );
     } catch (error) {
       status.textContent = error.message || "No fue posible iniciar sesión.";
     } finally {
