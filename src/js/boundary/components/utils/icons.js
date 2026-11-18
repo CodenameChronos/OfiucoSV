@@ -1,5 +1,5 @@
 /**
- * Registro de íconos propios (SVG 24x24, trazo). El contenido es estático y
+ * Registro de íconos propios  El contenido es estático y
  * confiable; nunca se construye a partir de datos externos.
  * El ícono `logo` es un marcador de posición: reemplazar por el logo real.
  */

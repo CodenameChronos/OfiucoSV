@@ -1,8 +1,36 @@
+/**
+ * @fileoverview Web Component `<ofiuco-auto-complete>` que implementa un campo de
+ * entrada con autocompletado accesible (`role="combobox"` y `role="listbox"`).
+ * Filtra opciones en memoria a partir de un umbral mínimo de caracteres (`min-chars`),
+ * limita la cantidad de sugerencias visibles (`max-results`), soporta navegación por
+ * teclado (`ArrowUp`, `ArrowDown`, `Enter`, `Escape`) y emite eventos personalizados
+ * al modificar el texto (`value-changed`) o elegir una opción (`option-selected`).
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 
+/**
+ * Componente web `<ofiuco-auto-complete [label] [placeholder] [value] [disabled] [required] [min-chars] [max-results]>`.
+ *
+ * Control de entrada de texto con lista desplegable de sugerencias filtradas.
+ * Normaliza automáticamente arreglos de cadenas, números u objetos de dominio
+ * (`id`, `idTipoDocumento`, `idClinica`, `idRol`, `idPersona`, `nombre`, `descripcion`, etc.).
+ *
+ * Eventos emitidos (`bubbles: true`, `composed: true`):
+ * - `value-changed`: Cuando el usuario escribe en el campo (`detail: { value }`).
+ * - `option-selected`: Cuando el usuario selecciona una sugerencia (`detail: { value, label, option }`).
+ *
+ * @extends BaseComponent
+ * @fires CustomEvent#value-changed
+ * @fires CustomEvent#option-selected
+ */
 export class OfiucoAutoComplete extends BaseComponent {
+  /**
+   * Lista de atributos HTML observados para sincronizar el estado y presentación del control.
+   * @type {string[]}
+   */
   static observedAttributes = [
     "label",
     "placeholder",
@@ -13,6 +41,10 @@ export class OfiucoAutoComplete extends BaseComponent {
     "max-results",
   ];
 
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/auto_complete.css",
@@ -89,6 +121,10 @@ export class OfiucoAutoComplete extends BaseComponent {
     return Number.isInteger(value) && value > 0 ? value : 10;
   }
 
+  /**
+   * Construye la estructura DOM del campo dentro del Shadow DOM (`<label>`, `<input role="combobox">`
+   * y `<ul role="listbox">`) y registra los manejadores de eventos (`input`, `focus`, `keydown`, `blur`).
+   */
   render() {
     const id = `ofiuco-ac-${
       globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)
@@ -154,6 +190,14 @@ export class OfiucoAutoComplete extends BaseComponent {
     );
   }
 
+  /**
+   * Callback nativo de Custom Elements ejecutado cuando cambia alguno de los atributos observados.
+   * Sincroniza etiquetas, marcadores de posición, valores, estados booleanos o vuelve a filtrar opciones.
+   *
+   * @param {string} name - Nombre del atributo modificado.
+   * @param {string|null} oldValue - Valor anterior del atributo.
+   * @param {string|null} newValue - Nuevo valor del atributo.
+   */
   attributeChangedCallback(name, oldValue, newValue) {
     if (!this.rendered || oldValue === newValue) return;
 
@@ -176,6 +220,13 @@ export class OfiucoAutoComplete extends BaseComponent {
     }
   }
 
+  /**
+   * Normaliza un elemento heterogéneo de `#options` (primitivo u objeto de dominio)
+   * a una estructura estándar `{ value, label, source }`.
+   *
+   * @param {*} item - Elemento original del arreglo de opciones.
+   * @returns {{ value: string, label: string, source: * }} Opción normalizada.
+   */
   #normalise(item) {
     if (typeof item === "string" || typeof item === "number") {
       return {
@@ -204,6 +255,13 @@ export class OfiucoAutoComplete extends BaseComponent {
     };
   }
 
+  /**
+   * Filtra `#options` según el texto ingresado (`query`), renderiza los elementos
+   * `<li role="option">` correspondientes en `#list` hasta `maxResults` y actualiza
+   * los atributos ARIA de expansión del `combobox`.
+   *
+   * @param {string} query - Texto actual ingresado en el campo de búsqueda.
+   */
   #paintOptions(query) {
     if (!this.#list || !this.#input) return;
 
@@ -270,6 +328,12 @@ export class OfiucoAutoComplete extends BaseComponent {
     this.#input.setAttribute("aria-expanded", String(!this.#list.hidden));
   }
 
+  /**
+   * Confirma la selección de una opción, actualiza el valor del input con su etiqueta,
+   * cierra la lista desplegable y despacha el evento `option-selected`.
+   *
+   * @param {{ value: string, label: string, source: * }} item - Opción normalizada elegida.
+   */
   #select(item) {
     this.#selected = {
       value: item.value,
@@ -289,6 +353,10 @@ export class OfiucoAutoComplete extends BaseComponent {
     );
   }
 
+  /**
+   * Oculta la lista desplegable de sugerencias y restablece `aria-expanded` y
+   * `aria-activedescendant` en el campo de entrada.
+   */
   #close() {
     if (!this.#list) return;
 
@@ -297,6 +365,14 @@ export class OfiucoAutoComplete extends BaseComponent {
     this.#input.removeAttribute("aria-activedescendant");
   }
 
+  /**
+   * Gestiona la navegación y selección por teclado dentro del campo:
+   * - `Escape`: Cierra la lista desplegable.
+   * - `ArrowDown` / `ArrowUp`: Desplaza el índice activo `#active` y actualiza `aria-selected` y `aria-activedescendant`.
+   * - `Enter`: Selecciona la opción actualmente resaltada si existe.
+   *
+   * @param {KeyboardEvent} event - Evento de teclado capturado en `#input`.
+   */
   #onKeyDown(event) {
     if (event.key === "Escape") {
       this.#close();

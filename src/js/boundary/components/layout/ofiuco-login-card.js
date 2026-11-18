@@ -1,9 +1,35 @@
+/**
+ * @fileoverview Web Component `<ofiuco-login-card>` que implementa la tarjeta
+ * interactiva de inicio de sesión por selección en cascada (Clínica -> Rol -> Persona)
+ * utilizando componentes `<ofiuco-auto-complete>`. Valida que las tres selecciones
+ * estén completas antes de emitir el evento `login-requested`.
+ */
+
 import "../primitives/ofiuco-auto-complete.js";
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 
+/**
+ * Componente web `<ofiuco-login-card>`.
+ *
+ * Presenta un formulario de acceso con selección dependiente en tres pasos:
+ * 1. Clínica (`clinicas`)
+ * 2. Rol (`roles`, habilitado tras seleccionar clínica)
+ * 3. Persona (`personas`, habilitado tras seleccionar rol)
+ *
+ * Al enviar el formulario con las tres opciones seleccionadas, despacha el evento
+ * personalizado `login-requested` (`bubbles: true`, `composed: true`) con
+ * `detail: { clinica, rol, persona }`.
+ *
+ * @extends BaseComponent
+ * @fires CustomEvent#login-requested
+ */
 export class OfiucoLoginCard extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/login_card.css",
@@ -17,11 +43,9 @@ export class OfiucoLoginCard extends BaseComponent {
   #form;
   #feedback;
   #submit;
-
   #clinicas = [];
   #roles = [];
   #personas = [];
-
   #selected = {
     clinica: null,
     rol: null,
@@ -64,6 +88,12 @@ export class OfiucoLoginCard extends BaseComponent {
     }
   }
 
+  /**
+   * Construye la estructura DOM de la tarjeta de inicio de sesión dentro del Shadow DOM
+   * (marca institucional, encabezados, tres campos `<ofiuco-auto-complete>`, área de
+   * retroalimentación y botón de envío) y enlaza todos los eventos de selección,
+   * edición de texto y envío de formulario.
+   */
   render() {
     const title = h(
       "h2",
@@ -209,6 +239,13 @@ export class OfiucoLoginCard extends BaseComponent {
     this.#form.addEventListener("submit", (event) => this.#onSubmit(event));
   }
 
+  /**
+   * Gestiona la selección de una clínica válida: almacena el detalle, reinicia
+   * las selecciones dependientes (`rol` y `persona`), habilita el selector de rol
+   * y mantiene deshabilitado el de persona.
+   *
+   * @param {CustomEvent} event - Evento `option-selected` emitido por `#clinic`.
+   */
   #onClinicSelected(event) {
     this.#selected.clinica = event.detail;
 
@@ -227,6 +264,12 @@ export class OfiucoLoginCard extends BaseComponent {
     this.#clearFeedback();
   }
 
+  /**
+   * Gestiona la selección de un rol válido: almacena el detalle, limpia la selección
+   * previa de persona y habilita el selector `#person`.
+   *
+   * @param {CustomEvent} event - Evento `option-selected` emitido por `#role`.
+   */
   #onRoleSelected(event) {
     this.#selected.rol = event.detail;
     this.#selected.persona = null;
@@ -238,11 +281,23 @@ export class OfiucoLoginCard extends BaseComponent {
     this.#clearFeedback();
   }
 
+  /**
+   * Almacena la opción de persona seleccionada y limpia cualquier mensaje de error previo.
+   *
+   * @param {CustomEvent} event - Evento `option-selected` emitido por `#person`.
+   */
   #onPersonSelected(event) {
     this.#selected.persona = event.detail;
     this.#clearFeedback();
   }
 
+  /**
+   * Maneja el envío del formulario: verifica que clínica, rol y persona hayan sido
+   * seleccionados; de lo contrario muestra un mensaje en `#feedback`. Si todo es válido,
+   * despacha el evento `login-requested` con las opciones elegidas.
+   *
+   * @param {SubmitEvent} event - Evento nativo `submit` del formulario.
+   */
   #onSubmit(event) {
     event.preventDefault();
 
@@ -268,14 +323,26 @@ export class OfiucoLoginCard extends BaseComponent {
     );
   }
 
+  /**
+   * Muestra un mensaje informativo o de validación en el elemento `#feedback`.
+   *
+   * @param {string} message - Texto a mostrar al usuario.
+   */
   #showFeedback(message) {
     this.#feedback.textContent = message;
   }
 
+  /**
+   * Limpia cualquier texto visible en el elemento `#feedback`.
+   */
   #clearFeedback() {
     this.#feedback.textContent = "";
   }
 
+  /**
+   * Responde a cambios manuales de texto en el campo de clínica invalidando la
+   * selección actual y bloqueando/reiniciando los campos dependientes (`rol` y `persona`).
+   */
   #onClinicChanged() {
     this.#selected.clinica = null;
     this.#selected.rol = null;
@@ -294,6 +361,10 @@ export class OfiucoLoginCard extends BaseComponent {
     this.#clearFeedback();
   }
 
+  /**
+   * Responde a cambios manuales de texto en el campo de rol invalidando la
+   * selección actual de rol y bloqueando/reiniciando el campo dependiente (`persona`).
+   */
   #onRoleChanged() {
     this.#selected.rol = null;
     this.#selected.persona = null;

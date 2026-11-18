@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Web Component presentacional `<ofiuco-exam-assigner>` para el panel
+ * "Asignar exámenes". Permite buscar y seleccionar exámenes desde un catálogo mediante
+ * `<ofiuco-auto-complete>`, visualizar la lista de exámenes asignados (indicando cuáles
+ * están pendientes de guardar) y emitir eventos para agregar o quitar elementos.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
@@ -5,6 +12,7 @@ import { ConsultaEventos } from "../../core/eventos-consulta.js";
 import "../functional/ofiuco-remove-exam-button.js";
 import "../primitives/ofiuco-auto-complete.js";
 
+/** @type {string} URL resuelta de la hoja de estilos asociada al asignador de exámenes. */
 const stylesUrl = new URL(
   "../../../../resources/styles/components/exam_assigner.css",
   import.meta.url,
@@ -24,8 +32,15 @@ const stylesUrl = new URL(
  *
  * La selección es el BORRADOR: puede incluir exámenes aún no guardados, que se
  * marcan "Pendiente de guardar" (ordenado === false).
+ * @extends BaseComponent
+ * @fires CustomEvent#ConsultaEventos.EXAMEN_AGREGADO
+ * @fires CustomEvent#ConsultaEventos.QUITAR_EXAMEN
  */
 export class OfiucoExamAssigner extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [stylesUrl];
 
   #model = null;
@@ -42,6 +57,11 @@ export class OfiucoExamAssigner extends BaseComponent {
     if (this.rendered) this.#sincronizar();
   }
 
+  /**
+   * Construye la estructura DOM del panel dentro del Shadow DOM, configura el buscador
+   * y aísla los eventos internos del autocompletado para despachar únicamente el evento
+   * de dominio `ConsultaEventos.EXAMEN_AGREGADO`.
+   */
   render() {
     this.#buscador = h("ofiuco-auto-complete", {
       label: "Buscar examen",
@@ -84,6 +104,12 @@ export class OfiucoExamAssigner extends BaseComponent {
     this.#sincronizar();
   }
 
+  /**
+   * Actualiza la interfaz interna del componente a partir del estado de `#model`:
+   * - Filtra del buscador los exámenes que ya forman parte de la selección y ajusta su estado `readonly`.
+   * - Construye la lista de exámenes asignados (incluyendo respaldos si algún ID ya no figura en el catálogo).
+   * - Muestra el indicador `"Pendiente de guardar"` cuando `ordenado` es falso y alterna el mensaje de lista vacía.
+   */
   #sincronizar() {
     const modelo = this.#model;
     const catalogo = modelo?.catalogo ?? [];

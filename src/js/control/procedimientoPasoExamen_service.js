@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Servicio de acceso a datos para la relación entre pasos de procedimiento
+ * y exámenes clínicos (`examen/{idExamen}/paso` y `procedimiento/{idProcedimiento}/paso/{idProcedimientoPaso}/examen`).
+ * Extiende `DefaultService` y deserializa las respuestas mediante la entidad `ProcedimientoPasoExamen`.
+ */
+
 import DefaultService from "./default_service.js";
 import ProcedimientoPasoExamen from "../entity/procedimientoPasoExamen.js";
 
@@ -7,6 +13,12 @@ import ProcedimientoPasoExamen from "../entity/procedimientoPasoExamen.js";
  * @param {string} [idExamen] uuid del examen en la ruta.
  */
 export default class ProcedimientoPasoExamenService extends DefaultService {
+  /**
+   * Inicializa el servicio asignando `ProcedimientoPasoExamen` como `EntityClass` y configurando
+   * la ruta base según si se especifica un `idExamen` padre.
+   *
+   * @param {string|null} [idExamen=null] - UUID opcional del examen en la ruta (`examen/{idExamen}/paso`).
+   */
   constructor(idExamen = null) {
     super();
     this.EntityClass = ProcedimientoPasoExamen;
@@ -16,12 +28,13 @@ export default class ProcedimientoPasoExamenService extends DefaultService {
   }
 
   /**
-   * Exámenes (procedimiento_paso_examen activos) que pueden asignarse en un
-   * paso. Recorre todas las páginas.
-   * @param {string} idProcedimiento uuid del procedimiento al que pertenece el paso
-   * @param {string} idProcedimientoPaso uuid del paso
-   * @returns {Promise<ProcedimientoPasoExamen[]>}
-   * @throws {TypeError} si falta alguno de los dos ids
+   * Recupera todos los exámenes (`procedimiento_paso_examen` activos) que pueden asignarse
+   * en un paso específico de un procedimiento clínico, recorriendo todas las páginas mediante `findAll()`.
+   *
+   * @param {string} idProcedimiento - UUID del procedimiento al que pertenece el paso.
+   * @param {string} idProcedimientoPaso - UUID del paso dentro del procedimiento.
+   * @returns {Promise<ProcedimientoPasoExamen[]>} Promesa con el arreglo completo de asociaciones `ProcedimientoPasoExamen`.
+   * @throws {TypeError} Si `idProcedimiento` o `idProcedimientoPaso` no son proporcionados.
    */
   async listarPorProcedimientoPaso(idProcedimiento, idProcedimientoPaso) {
     if (!idProcedimiento) {

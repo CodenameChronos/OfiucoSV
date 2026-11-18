@@ -1,8 +1,15 @@
+/**
+ * @fileoverview Web Component `<ofiuco-confirm-dialog>` para diálogos modales de confirmación.
+ * Utiliza el elemento nativo `<dialog>` para gestionar automáticamente el atrapado de foco,
+ * cierre con la tecla `Esc` y fondo backdrop, exponiendo una API asíncrona basada en promesas.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import { BUTTON_CLICK } from "../functional/ofiuco-button.js";
 
+/** @type {string} URL resuelta de la hoja de estilos asociada al diálogo de confirmación. */
 const stylesUrl = new URL(
   "../../../../resources/styles/components/confirm_dialog.css",
   import.meta.url,
@@ -25,8 +32,13 @@ const stylesUrl = new URL(
  *
  * `preguntar()` devuelve una promesa: true si el usuario acepta; false si
  * cancela, pulsa Esc, hace clic fuera o si se abre otra pregunta encima.
+ * @extends BaseComponent
  */
 export class OfiucoConfirmDialog extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [stylesUrl];
 
   #dialog;
@@ -37,6 +49,10 @@ export class OfiucoConfirmDialog extends BaseComponent {
   #cancelar;
   #resolver = null;
 
+  /**
+   * Construye la estructura DOM del diálogo modal dentro del Shadow DOM
+   * y enlaza los eventos de confirmación, cancelación, tecla `Esc` y clic en el backdrop.
+   */
   render() {
     const idTitulo = `ofiuco-dlg-${globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)}`;
 
@@ -78,18 +94,26 @@ export class OfiucoConfirmDialog extends BaseComponent {
     this.shadowRoot.append(this.#dialog);
   }
 
+  /**
+   * Ciclo de vida ejecutado cuando el componente se desconecta del DOM.
+   * Cierra el diálogo y resuelve con `false` cualquier confirmación pendiente.
+   */
   onDisconnect() {
     this.#cerrar(false);
   }
 
   /**
-   * @param {Object} [opciones]
-   * @param {string} [opciones.titulo]
-   * @param {string[]} [opciones.avisos] mensajes que se listan (texto plano)
-   * @param {string} [opciones.pregunta]
-   * @param {string} [opciones.aceptar] etiqueta del botón de confirmación
-   * @param {string} [opciones.cancelar] etiqueta del botón de cancelación
-   * @returns {Promise<boolean>}
+   * Configura el contenido textual del diálogo, lo despliega de forma modal (`showModal()`)
+   * y enfoca inicialmente el botón de cancelar como medida preventiva.
+   * Si existía una promesa anterior sin resolver, la resuelve automáticamente con `false`.
+   *
+   * @param {Object} [opciones={}] - Configuración del mensaje y etiquetas del diálogo.
+   * @param {string} [opciones.titulo="Confirmar acción"] - Encabezado principal del modal.
+   * @param {string[]} [opciones.avisos=[]] - Lista de mensajes de advertencia o detalle (en texto plano).
+   * @param {string} [opciones.pregunta="¿Desea continuar?"] - Texto de la pregunta de confirmación.
+   * @param {string} [opciones.aceptar="Continuar"] - Etiqueta del botón de confirmación.
+   * @param {string} [opciones.cancelar="Cancelar"] - Etiqueta del botón de cancelación.
+   * @returns {Promise<boolean>} Promesa que se resuelve en `true` si el usuario confirma o `false` en cualquier otro caso.
    */
   preguntar({
     titulo = "Confirmar acción",
@@ -117,6 +141,13 @@ export class OfiucoConfirmDialog extends BaseComponent {
     });
   }
 
+  /**
+   * Cierra el elemento `<dialog>` si permanece abierto y resuelve la promesa pendiente
+   * asegurando que `#resolver` se limpie antes de cerrar para evitar doble invocación
+   * desde el evento nativo `close`.
+   *
+   * @param {boolean} resultado - Resultado booleano con el que se resolverá la promesa.
+   */
   #cerrar(resultado) {
     const resolver = this.#resolver;
     this.#resolver = null;

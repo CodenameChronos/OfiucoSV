@@ -1,17 +1,30 @@
+/**
+ * @fileoverview Web Component `<ofiuco-session-chip>` que muestra de forma compacta
+ * los datos de la sesión activa del usuario (nombre principal y detalle secundario
+ * `"rol · clínica"`). Valida el objeto de sesión mediante `isValidSession` y se oculta
+ * automáticamente cuando no existe una sesión válida.
+ */
+
 import { BaseComponent } from "../../core/base-component.js";
 import { defineOnce } from "../../core/define-once.js";
 import { h } from "../../core/dom.js";
 import { isValidSession } from "../../core/session-events.js";
 
 /**
- * <ofiuco-session-chip>
+ * Componente web `<ofiuco-session-chip>`.
  *
- * Muestra quién tiene la sesión activa: nombre y, debajo, "rol · clínica".
- * Sin sesión (o con un modelo inválido) el componente se oculta por completo.
+ * Muestra quién tiene la sesión activa: nombre y, debajo, `"rol · clínica"`.
+ * Sin sesión (o con un modelo inválido) el componente se oculta por completo (`hidden = true`).
  *
- * Propiedad: `session` -> {nombre, rol?, clinica?} | null
+ * Propiedad: `session` -> `{nombre, rol?, clinica?} | null`
+ *
+ * @extends BaseComponent
  */
 export class OfiucoSessionChip extends BaseComponent {
+  /**
+   * Hojas de estilo cargadas en el Shadow DOM del componente.
+   * @type {string[]}
+   */
   static styleUrls = [
     new URL(
       "../../../../resources/styles/components/session_chip.css",
@@ -19,7 +32,6 @@ export class OfiucoSessionChip extends BaseComponent {
     ).href,
   ];
 
-  /** @type {import('../../core/session-events.js').Session|null} */
   #session = null;
   #nameEl;
   #detailEl;
@@ -33,6 +45,10 @@ export class OfiucoSessionChip extends BaseComponent {
     if (this.rendered) this.#paint();
   }
 
+  /**
+   * Construye los elementos `<span>` de nombre y detalle dentro del Shadow DOM
+   * y ejecuta el pintado inicial según el estado de `#session`.
+   */
   render() {
     this.#nameEl = h("span", { class: "nombre" });
     this.#detailEl = h("span", { class: "detalle" });
@@ -40,6 +56,10 @@ export class OfiucoSessionChip extends BaseComponent {
     this.#paint();
   }
 
+  /**
+   * Sincroniza la visibilidad del componente (`this.hidden`), los textos de `#nameEl`
+   * y `#detailEl`, y el atributo `title` (tooltip) en función de `#session`.
+   */
   #paint() {
     const session = this.#session;
     const detail = session
