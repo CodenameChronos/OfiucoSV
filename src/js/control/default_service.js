@@ -19,7 +19,7 @@ class DefaultService {
    */
   constructor() {
     this._BASE_URL =
-      "http://localhost:9080/GalenoSV-1.0-SNAPSHOT/resources/v1/";
+      "http://galeno.backend:9080/galeno/";
     this.URL = this._BASE_URL;
     this.EntityClass = null;
   }
