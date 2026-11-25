@@ -18,8 +18,7 @@ class DefaultService {
    * `EntityClass` en `null` por defecto
    */
   constructor() {
-    this._BASE_URL =
-      "http://localhost:9080/GalenoSV-1.0-SNAPSHOT/resources/v1/";
+    this._BASE_URL = "http://localhost:9080/galeno/resources/v1/";
     this.URL = this._BASE_URL;
     this.EntityClass = null;
   }
